@@ -12,6 +12,9 @@ import artistRoutes from './routes/artistRoutes';
 import royaltyRoutes from './routes/royaltyRoutes';
 import marketingRoutes from './routes/marketingRoutes';
 import facebookAdsRoutes from './routes/facebookAdsRoutes';
+import trackRoutes from './routes/trackRoutes';
+import { upload } from './middleware/upload';
+import { authenticate } from './middleware/auth';
 
 dotenv.config();
 
@@ -39,6 +42,12 @@ async function startServer() {
   app.use('/api/royalties', royaltyRoutes);
   app.use('/api/marketing', marketingRoutes);
   app.use('/api/facebook-ads', facebookAdsRoutes);
+  app.use('/api/tracks', trackRoutes);
+
+  app.post('/api/upload', authenticate, upload.single('file'), (req: any, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    res.json({ url: req.file.path, public_id: req.file.filename });
+  });
 
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Servidor funcionando' });

@@ -324,7 +324,7 @@ export default function App() {
       };
 
       const [userRes, artistsRes, tracksRes, royaltiesRes, brandingRes] = await Promise.all([
-        fetchWithCheck('/api/me'),
+        fetchWithCheck('/api/auth/me'),
         fetchWithCheck('/api/artists'),
         fetchWithCheck('/api/tracks'),
         fetchWithCheck('/api/royalties/summary'),
@@ -736,7 +736,7 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist }: { tracks: Tra
   const handleAddArtist = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const userRes = await fetch('/api/me', { headers: { 'Authorization': `Bearer ${token}` } });
+      const userRes = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
       const userData = await userRes.json();
       
       const res = await fetch('/api/artists', {

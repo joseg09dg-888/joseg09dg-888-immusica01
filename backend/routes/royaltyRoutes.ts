@@ -8,6 +8,6 @@ router.use(authenticate);
 
 router.get('/summary', getSummary);
 router.post('/upload', uploadRoyalties);
-router.get('/', authorize('admin'), getAllRoyalties);
+router.get('/', getAllRoyalties);
 
 export default router;

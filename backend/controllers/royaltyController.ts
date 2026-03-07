@@ -4,8 +4,7 @@ import * as ArtistModel from '../models/Artist';
 import * as TrackModel from '../models/Track';
 import * as RoyaltyModel from '../models/Royalty';
 import multer from 'multer';
-import csv from 'csv-parser';
-import fs from 'fs';
+import { parse } from 'csv-parse/sync';
 
 const upload = multer({ dest: 'uploads/' });
 
@@ -33,57 +32,70 @@ export const uploadRoyalties = [
   async (req: AuthRequest, res: Response) => {
     try {
       if (!req.user) return res.status(401).json({ error: 'No autorizado' });
-      if (!req.file) return res.status(400).json({ error: 'No se subió ningún archivo' });
 
-      const results: any[] = [];
-      fs.createReadStream(req.file.path)
-        .pipe(csv())
-        .on('data', (data) => results.push(data))
-        .on('end', async () => {
-          if (req.file && fs.existsSync(req.file.path)) {
-            fs.unlinkSync(req.file.path);
-          }
+      let records: any[] = [];
 
-          for (const row of results) {
-            if (!row.fecha || !row.plataforma || !row.cantidad) {
-              console.warn('Fila incompleta, se omite:', row);
-              continue;
-            }
+      if (req.file) {
+        const fs = await import('fs');
+        const fileContent = fs.readFileSync(req.file.path, 'utf-8');
+        records = parse(fileContent, { columns: true, skip_empty_lines: true });
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+      } else if (req.body.csv) {
+        records = parse(req.body.csv, { columns: true, skip_empty_lines: true });
+      } else {
+        return res.status(400).json({ error: 'No se proporcionó ningún archivo o datos CSV' });
+      }
 
-            let trackId = null;
-            if (row.track_id) {
-              trackId = parseInt(row.track_id);
-            } else if (row.track_title) {
-              const tracks = TrackModel.getAllTracks().filter((t: any) => t.title === row.track_title);
-              if (tracks.length > 0) trackId = tracks[0].id;
-            }
+      const artists = ArtistModel.getArtistsByUser(req.user.id);
+      const artistId = artists.length > 0 ? artists[0].id : null;
 
-            RoyaltyModel.createRoyalty({
-              fecha: row.fecha,
-              plataforma: row.plataforma,
-              tipo: row.tipo || null,
-              cantidad: parseFloat(row.cantidad),
-              track_id: trackId,
-              concepto: row.concepto || null,
-              estado: row.estado || 'proyectado'
-            });
-          }
+      for (const row of records) {
+        if (!row.fecha || !row.plataforma || !row.cantidad) {
+          console.warn('Fila incompleta, se omite:', row);
+          continue;
+        }
 
-          res.json({ message: 'Archivo procesado correctamente', filas: results.length });
-        })
-        .on('error', (err) => {
-          console.error(err);
-          res.status(500).json({ error: 'Error al leer el archivo CSV' });
+        let trackId = null;
+        if (row.track_id) {
+          trackId = parseInt(row.track_id);
+        } else if (row.track_title) {
+          const tracks = TrackModel.getAllTracks().filter((t: any) => t.title === row.track_title);
+          if (tracks.length > 0) trackId = tracks[0].id;
+        }
+
+        RoyaltyModel.createRoyalty({
+          artist_id: artistId,
+          fecha: row.fecha,
+          plataforma: row.plataforma,
+          tipo: row.tipo || null,
+          cantidad: parseFloat(row.cantidad),
+          track_id: trackId,
+          concepto: row.concepto || null,
+          estado: row.estado || 'proyectado'
         });
-    } catch (error) {
+      }
+
+      res.json({ message: 'Datos procesados correctamente', filas: records.length });
+    } catch (error: any) {
       console.error(error);
-      res.status(500).json({ error: 'Error al procesar el archivo' });
+      res.status(500).json({ error: 'Error al procesar los datos: ' + error.message });
     }
   }
 ];
 
 export const getAllRoyalties = (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== 'admin') return res.status(403).json({ error: 'Prohibido' });
-  const royalties = RoyaltyModel.getAllRoyalties();
+  if (!req.user) return res.status(401).json({ error: 'No autorizado' });
+
+  if (req.user.role === 'admin') {
+    const royalties = RoyaltyModel.getAllRoyalties();
+    return res.json(royalties);
+  }
+
+  const artists = ArtistModel.getArtistsByUser(req.user.id);
+  if (artists.length === 0) return res.json([]);
+  
+  const royalties = RoyaltyModel.getRoyaltiesByArtist(artists[0].id);
   res.json(royalties);
 };

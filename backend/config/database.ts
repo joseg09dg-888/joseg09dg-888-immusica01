@@ -62,6 +62,7 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS royalties (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    artist_id INTEGER,
     fecha TEXT NOT NULL,
     plataforma TEXT NOT NULL,
     tipo TEXT,
@@ -70,6 +71,7 @@ db.exec(`
     concepto TEXT,
     estado TEXT DEFAULT 'proyectado',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(artist_id) REFERENCES artists(id) ON DELETE CASCADE,
     FOREIGN KEY(track_id) REFERENCES tracks(id) ON DELETE SET NULL
   );
 
