@@ -58,5 +58,35 @@ export const geminiService = {
       },
     });
     return JSON.parse(response.text || "{}");
+  },
+
+  async reviewContract(contractText: string) {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Analyze the following music industry contract text and provide a legal risk assessment.
+      Contract Text: "${contractText}"
+      
+      Include:
+      1. Summary of key terms (Duration, Territory, Royalties, Rights).
+      2. Potential red flags or risks for the artist.
+      3. Suggested improvements or negotiation points.
+      4. Overall risk score (1-10, where 1 is safe and 10 is high risk).
+      
+      Return as JSON.`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            summary: { type: Type.STRING },
+            redFlags: { type: Type.ARRAY, items: { type: Type.STRING } },
+            suggestions: { type: Type.ARRAY, items: { type: Type.STRING } },
+            riskScore: { type: Type.NUMBER },
+          },
+          required: ["summary", "redFlags", "suggestions", "riskScore"],
+        },
+      },
+    });
+    return JSON.parse(response.text || "{}");
   }
 };

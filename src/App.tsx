@@ -32,6 +32,8 @@ import confetti from 'canvas-confetti';
 import { Artist, Track, RoyaltySummary, User, Branding } from './types';
 import { geminiService } from './services/geminiService';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://fascinating-particulate-teodora.ngrok-free.dev';
+
 // --- Components ---
 
 const SidebarItem = ({ icon: Icon, label, active, onClick }: { icon: any, label: string, active?: boolean, onClick: () => void }) => (
@@ -89,6 +91,7 @@ function FacebookAdsPanel({ branding }: { branding: Branding | null }) {
     creative: {
       title: '',
       body: '',
+      imageUrl: '',
       callToAction: 'LEARN_MORE',
       websiteUrl: ''
     }
@@ -99,7 +102,7 @@ function FacebookAdsPanel({ branding }: { branding: Branding | null }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/facebook-ads/campaigns', {
+      const res = await fetch(`${API_URL}/api/facebook-ads/campaigns`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -120,24 +123,128 @@ function FacebookAdsPanel({ branding }: { branding: Branding | null }) {
     }
   };
 
+  const [insights, setInsights] = useState<any>(null);
+  const [loadingInsights, setLoadingInsights] = useState(false);
+  const [activating, setActivating] = useState(false);
+
+  const fetchInsights = async (campaignId: string) => {
+    setLoadingInsights(true);
+    try {
+      const res = await fetch(`${API_URL}/api/facebook-ads/campaigns/${campaignId}/insights`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setInsights(data.data?.[0] || null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingInsights(false);
+    }
+  };
+
+  const handleActivate = async (campaignId: string) => {
+    setActivating(true);
+    try {
+      const res = await fetch(`${API_URL}/api/facebook-ads/campaigns/${campaignId}/activate`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setSuccess({ ...success, status: 'ACTIVE' });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActivating(false);
+    }
+  };
+
   if (success) {
     return (
-      <div className="glass-card p-10 text-center space-y-6">
+      <div className="glass-card p-10 text-center space-y-8">
         <div className="w-20 h-20 bg-emerald-400/10 rounded-full flex items-center justify-center mx-auto text-emerald-400">
           <ShieldCheck size={40} />
         </div>
-        <h3 className="text-2xl font-display font-black">¡Campaña Creada!</h3>
-        <p className="text-white/60">Tu campaña "{formData.campaignName}" ha sido creada exitosamente en Facebook (estado: Pausada).</p>
-        <div className="p-4 bg-white/5 rounded-xl text-left text-xs font-mono space-y-2">
-          <p><span className="text-white/30">ID Campaña:</span> {success.campaignId}</p>
-          <p><span className="text-white/30">ID Ad Set:</span> {success.adSetId}</p>
+        <div className="space-y-2">
+          <h3 className="text-2xl font-display font-black">¡Campaña Creada!</h3>
+          <p className="text-white/60">Tu campaña "{formData.campaignName}" ha sido creada exitosamente en Facebook.</p>
         </div>
-        <button 
-          onClick={() => setSuccess(null)}
-          className="px-8 py-3 bg-white/5 hover:bg-white/10 rounded-xl font-black uppercase tracking-widest text-[10px]"
-        >
-          Crear Otra
-        </button>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-6 bg-white/5 rounded-2xl text-left border border-white/10 space-y-4">
+            <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Detalles Técnicos</p>
+            <div className="space-y-2 text-xs font-mono">
+              <p><span className="text-white/20">ID Campaña:</span> {success.campaignId}</p>
+              <p><span className="text-white/20">ID Ad Set:</span> {success.adSetId}</p>
+              <p>
+                <span className="text-white/20">Estado:</span> 
+                <span className={success.status === 'ACTIVE' ? 'text-emerald-400' : 'text-amber-400'}>
+                  {success.status || 'PAUSED'}
+                </span>
+              </p>
+              {success.status !== 'ACTIVE' && (
+                <button 
+                  onClick={() => handleActivate(success.campaignId)}
+                  disabled={activating}
+                  className="mt-2 text-[10px] font-black uppercase tracking-widest bg-emerald-400 text-ink px-3 py-1 rounded-lg hover:bg-emerald-300 transition-colors disabled:opacity-50"
+                >
+                  {activating ? 'Activando...' : 'Activar Ahora'}
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="p-6 bg-white/5 rounded-2xl text-left border border-white/10 space-y-4">
+            <div className="flex justify-between items-center">
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Insights (Simulados/Live)</p>
+              <button 
+                onClick={() => fetchInsights(success.campaignId)}
+                disabled={loadingInsights}
+                className="text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors"
+              >
+                {loadingInsights ? 'Actualizando...' : 'Actualizar'}
+              </button>
+            </div>
+            {insights ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[8px] text-white/20 uppercase font-black">Impressions</p>
+                  <p className="text-lg font-display font-black">{insights.impressions || '0'}</p>
+                </div>
+                <div>
+                  <p className="text-[8px] text-white/20 uppercase font-black">Clicks</p>
+                  <p className="text-lg font-display font-black">{insights.clicks || '0'}</p>
+                </div>
+                <div>
+                  <p className="text-[8px] text-white/20 uppercase font-black">Spend</p>
+                  <p className="text-lg font-display font-black">${insights.spend || '0.00'}</p>
+                </div>
+                <div>
+                  <p className="text-[8px] text-white/20 uppercase font-black">Reach</p>
+                  <p className="text-lg font-display font-black">{insights.reach || '0'}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="h-full flex items-center justify-center py-4">
+                <p className="text-[10px] text-white/20 italic">No hay datos disponibles aún</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-4">
+          <button 
+            onClick={() => setSuccess(null)}
+            className="flex-1 px-8 py-4 bg-white/5 hover:bg-white/10 rounded-2xl font-black uppercase tracking-widest text-[10px] border border-white/10 transition-all"
+          >
+            Crear Otra Campaña
+          </button>
+          <button 
+            className="flex-1 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-blue-600/20 transition-all"
+          >
+            Ir al Business Manager
+          </button>
+        </div>
       </div>
     );
   }
@@ -230,6 +337,17 @@ function FacebookAdsPanel({ branding }: { branding: Branding | null }) {
                 />
               </div>
               <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/30">URL de la Imagen</label>
+                <input 
+                  required
+                  type="url"
+                  value={formData.creative.imageUrl}
+                  onChange={e => setFormData({...formData, creative: {...formData.creative, imageUrl: e.target.value}})}
+                  placeholder="https://images.unsplash.com/..."
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-600 transition-all"
+                />
+              </div>
+              <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-white/30">URL de Destino</label>
                 <input 
                   required
@@ -301,7 +419,7 @@ export default function App() {
   const fetchInitialData = async (retries = 3) => {
     try {
       const fetchWithCheck = async (url: string) => {
-        const r = await fetch(url, {
+        const r = await fetch(`${API_URL}${url}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -354,7 +472,7 @@ export default function App() {
 
   const handleLogin = async (email: string, password: string) => {
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -375,7 +493,7 @@ export default function App() {
       case 'catalog':
         return <CatalogView tracks={tracks} artists={artists} onAddTrack={() => fetchInitialData()} onAddArtist={() => fetchInitialData()} />;
       case 'marketing':
-        return <MarketingView artists={artists} branding={branding} onUpdateBranding={() => fetchInitialData()} />;
+        return <MarketingView artists={artists} branding={branding} onUpdateBranding={() => fetchInitialData()} token={token} />;
       case 'royalties':
         return <RoyaltiesView royalties={royalties} onUploadSuccess={() => fetchInitialData()} />;
       case 'legal':
@@ -707,7 +825,7 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist }: { tracks: Tra
     e.preventDefault();
     if (!selectedArtistId) return alert("Select an artist first");
     try {
-      const res = await fetch('/api/tracks', {
+      const res = await fetch(`${API_URL}/api/tracks`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -736,10 +854,10 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist }: { tracks: Tra
   const handleAddArtist = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const userRes = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+      const userRes = await fetch(`${API_URL}/api/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } });
       const userData = await userRes.json();
       
-      const res = await fetch('/api/artists', {
+      const res = await fetch(`${API_URL}/api/artists`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -765,7 +883,7 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist }: { tracks: Tra
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const res = await fetch('/api/upload', {
+      const res = await fetch(`${API_URL}/api/upload`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -991,25 +1109,37 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist }: { tracks: Tra
   );
 }
 
-function MarketingView({ artists, branding, onUpdateBranding }: { artists: Artist[], branding: Branding | null, onUpdateBranding: () => void }) {
+function MarketingView({ artists, branding, onUpdateBranding, token }: { artists: Artist[], branding: Branding | null, onUpdateBranding: () => void, token: string | null }) {
   const [step, setStep] = useState(branding ? 'branding' : 'intro');
   const [activeSubTab, setActiveSubTab] = useState<'strategy' | 'facebook'>('strategy');
   const [questions, setQuestions] = useState<string[]>([]);
   const [answers, setAnswers] = useState<string[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [token] = useState(localStorage.getItem('im_music_token'));
 
   useEffect(() => {
     if (step === 'test' && questions.length === 0) {
-      fetch('/api/marketing/preguntas')
+      fetch(`${API_URL}/api/marketing/preguntas`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
         .then(res => res.json())
         .then(data => {
-          setQuestions(data);
-          setAnswers(new Array(data.length).fill(''));
+          if (Array.isArray(data)) {
+            setQuestions(data);
+            setAnswers(new Array(data.length).fill(''));
+          } else {
+            console.error('Expected array of questions, got:', data);
+            setQuestions([]);
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching questions:', err);
+          setQuestions([]);
         });
     }
-  }, [step]);
+  }, [step, token, questions.length]);
 
   const handleAnswer = (val: string) => {
     const newAnswers = [...answers];
@@ -1023,7 +1153,7 @@ function MarketingView({ artists, branding, onUpdateBranding }: { artists: Artis
   const submitTest = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/marketing/test', {
+      const res = await fetch(`${API_URL}/api/marketing/test`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -1044,7 +1174,7 @@ function MarketingView({ artists, branding, onUpdateBranding }: { artists: Artis
   const generateBranding = async () => {
     setLoading(true);
     try {
-      await fetch('/api/marketing/generar-branding', {
+      await fetch(`${API_URL}/api/marketing/generar-branding`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -1059,7 +1189,7 @@ function MarketingView({ artists, branding, onUpdateBranding }: { artists: Artis
   const generateMarket = async () => {
     setLoading(true);
     try {
-      await fetch('/api/marketing/generar-mercado', {
+      await fetch(`${API_URL}/api/marketing/generar-mercado`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -1074,7 +1204,7 @@ function MarketingView({ artists, branding, onUpdateBranding }: { artists: Artis
   const generatePlan = async () => {
     setLoading(true);
     try {
-      await fetch('/api/marketing/generar-plan', {
+      await fetch(`${API_URL}/api/marketing/generar-plan`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -1268,16 +1398,64 @@ function MarketingView({ artists, branding, onUpdateBranding }: { artists: Artis
           {/* Plan de Contenidos */}
           {branding?.plan_contenidos && (
             <div className="glass-card p-10 space-y-8">
-              <h3 className="text-2xl font-display font-black tracking-tight flex items-center gap-3">
-                <TrendingUp className="text-cyber-cyan" />
-                Plan de Contenidos (30 Días)
-              </h3>
-              <div className="space-y-8">
-                {Object.entries(JSON.parse(branding.plan_contenidos)).map(([fase, content]: any, i) => (
-                  <div key={i} className="p-6 bg-white/5 rounded-2xl border border-white/10 space-y-4">
-                    <h4 className="font-black text-lg text-cyber-cyan uppercase tracking-tight">{fase}</h4>
-                    <p className="text-white/60 leading-relaxed">{content}</p>
-                  </div>
+              <div className="flex justify-between items-center">
+                <h3 className="text-2xl font-display font-black tracking-tight flex items-center gap-3">
+                  <Calendar className="text-cyber-cyan" />
+                  Plan de Contenidos (30 Días)
+                </h3>
+                <span className="text-[10px] font-black uppercase tracking-widest bg-cyber-cyan/10 text-cyber-cyan px-3 py-1 rounded-full border border-cyber-cyan/20">
+                  IA Generated
+                </span>
+              </div>
+              <div className="grid grid-cols-1 gap-6 max-h-[800px] overflow-y-auto pr-4 custom-scrollbar">
+                {JSON.parse(branding.plan_contenidos).map((day: any, i: number) => (
+                  <motion.div 
+                    key={i}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    className="p-8 bg-white/5 rounded-3xl border border-white/10 space-y-6 relative overflow-hidden group hover:bg-white/10 transition-all"
+                  >
+                    <div className="absolute top-0 right-0 p-6 text-4xl font-display font-black text-white/5 group-hover:text-white/10 transition-colors">
+                      Día {day.dia}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h4 className="font-black text-xl text-cyber-cyan tracking-tight">{day.titulo}</h4>
+                      <div className="flex gap-4 text-[10px] font-black uppercase tracking-widest text-white/30">
+                        <span>Duración: {day.duracion}</span>
+                        <span>•</span>
+                        <span>Objetivo: {day.objetivo}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20">Guion Segundo a Segundo</p>
+                      <div className="space-y-3">
+                        {day.guion.map((step: any, j: number) => (
+                          <div key={j} className="flex gap-4 p-4 bg-white/5 rounded-xl text-sm">
+                            <span className="font-black text-cyber-cyan shrink-0">{step.tiempo}</span>
+                            <div className="space-y-1">
+                              <p className="text-white/80"><span className="text-white/40 font-bold uppercase text-[10px] mr-2">Visual:</span> {step.visual}</p>
+                              <p className="text-white/60 italic"><span className="text-white/40 font-bold uppercase text-[10px] mr-2">Audio:</span> {step.audio}</p>
+                              {step.texto && <p className="text-neon-pink font-bold"><span className="text-white/40 font-bold uppercase text-[10px] mr-2">Texto:</span> {step.texto}</p>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20">Neurociencia Aplicada</p>
+                        <p className="text-xs text-white/60 font-medium">{day.neurociencia}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20">Call to Action (CTA)</p>
+                        <p className="text-xs text-emerald-400 font-black uppercase tracking-widest">{day.cta}</p>
+                      </div>
+                    </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -1330,7 +1508,7 @@ function RoyaltiesView({ royalties, onUploadSuccess }: { royalties: RoyaltySumma
   const [token] = useState(localStorage.getItem('im_music_token'));
 
   useEffect(() => {
-    fetch('/api/royalties', {
+    fetch(`${API_URL}/api/royalties`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -1341,7 +1519,7 @@ function RoyaltiesView({ royalties, onUploadSuccess }: { royalties: RoyaltySumma
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch('/api/royalties/upload', {
+      const res = await fetch(`${API_URL}/api/royalties/upload`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -1354,7 +1532,7 @@ function RoyaltiesView({ royalties, onUploadSuccess }: { royalties: RoyaltySumma
       setShowUpload(false);
       setCsvText('');
       // Refresh detailed list
-      const updated = await fetch('/api/royalties', {
+      const updated = await fetch(`${API_URL}/api/royalties`, {
         headers: { 'Authorization': `Bearer ${token}` }
       }).then(r => r.json());
       setDetailedRoyalties(updated);
@@ -1517,6 +1695,25 @@ function RoyaltiesView({ royalties, onUploadSuccess }: { royalties: RoyaltySumma
 }
 
 function LegalView() {
+  const [contractText, setContractText] = useState('');
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [reviewResult, setReviewResult] = useState<any>(null);
+  const [showUpload, setShowUpload] = useState(false);
+
+  const handleReview = async () => {
+    if (!contractText) return;
+    setIsReviewing(true);
+    try {
+      const result = await geminiService.reviewContract(contractText);
+      setReviewResult(result);
+    } catch (err) {
+      console.error(err);
+      alert("Error reviewing contract. Please try again.");
+    } finally {
+      setIsReviewing(false);
+    }
+  };
+
   return (
     <div className="space-y-6 lg:space-y-10">
       <div className="flex justify-between items-center">
@@ -1553,14 +1750,114 @@ function LegalView() {
             <FileText size={32} />
           </div>
           <div>
-            <h3 className="text-2xl font-display font-black tracking-tight">Contract Review</h3>
-            <p className="text-white/50 mt-4 leading-relaxed font-medium">Upload any industry contract for an AI-powered legal risk assessment and summary of key terms.</p>
+            <h3 className="text-2xl font-display font-black tracking-tight">AI Contract Review</h3>
+            <p className="text-white/50 mt-4 leading-relaxed font-medium">Paste any industry contract for an AI-powered legal risk assessment and summary of key terms.</p>
           </div>
-          <button className="w-full bg-white/5 hover:bg-white/10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs transition-all border border-white/5">
-            Upload Contract
+          <button 
+            onClick={() => setShowUpload(true)}
+            className="w-full bg-white/5 hover:bg-white/10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs transition-all border border-white/5"
+          >
+            Start AI Review
           </button>
         </motion.div>
       </div>
+
+      <AnimatePresence>
+        {showUpload && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="glass-card p-10 border-cyber-cyan/30"
+          >
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="text-2xl font-display font-black tracking-tight">Contract Analysis</h3>
+              <button onClick={() => setShowUpload(false)} className="text-white/30 hover:text-white transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+
+            {!reviewResult ? (
+              <div className="space-y-6">
+                <textarea 
+                  value={contractText}
+                  onChange={(e) => setContractText(e.target.value)}
+                  placeholder="Paste the contract text here..."
+                  className="w-full h-64 bg-white/5 border border-white/10 rounded-2xl p-6 text-white focus:outline-none focus:border-cyber-cyan transition-all font-medium"
+                />
+                <button 
+                  onClick={handleReview}
+                  disabled={isReviewing || !contractText}
+                  className="w-full bg-cyber-cyan text-ink py-5 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-cyber-cyan/20 disabled:opacity-50"
+                >
+                  {isReviewing ? 'Analyzing with AI...' : 'Analyze Contract'}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div className="space-y-6">
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-cyber-cyan">Summary of Key Terms</h4>
+                    <p className="text-white/70 leading-relaxed">{reviewResult.summary}</p>
+                    
+                    <div className="pt-6">
+                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-400 mb-4">Risk Assessment</h4>
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1 h-3 bg-white/5 rounded-full overflow-hidden">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${reviewResult.riskScore * 10}%` }}
+                            className={`h-full ${reviewResult.riskScore > 7 ? 'bg-red-500' : reviewResult.riskScore > 4 ? 'bg-amber-400' : 'bg-emerald-400'}`}
+                          />
+                        </div>
+                        <span className="font-black text-xl">{reviewResult.riskScore}/10</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-8">
+                    <div>
+                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-400 mb-4">Red Flags</h4>
+                      <ul className="space-y-3">
+                        {reviewResult.redFlags.map((flag: string, i: number) => (
+                          <li key={i} className="flex items-start gap-3 text-sm text-white/60">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
+                            {flag}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400 mb-4">Suggestions</h4>
+                      <ul className="space-y-3">
+                        {reviewResult.suggestions.map((sug: string, i: number) => (
+                          <li key={i} className="flex items-start gap-3 text-sm text-white/60">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                            {sug}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex gap-4 pt-6">
+                  <button 
+                    onClick={() => { setReviewResult(null); setContractText(''); }}
+                    className="flex-1 bg-white/5 hover:bg-white/10 py-4 rounded-xl font-black uppercase tracking-widest text-xs border border-white/10 transition-all"
+                  >
+                    New Review
+                  </button>
+                  <button className="flex-1 bg-white text-ink py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl shadow-white/10">
+                    Download Report
+                  </button>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="glass-card p-10 border-white/10 bg-gradient-to-br from-white/5 to-transparent">
         <h3 className="text-xl font-display font-black tracking-tight mb-6">Legal Vault</h3>
@@ -1591,12 +1888,22 @@ function LegalView() {
 }
 
 function MarketplaceView() {
+  const [purchased, setPurchased] = useState<number[]>([]);
   const beats = [
     { id: 1, title: "Neon Nights", producer: "CyberSynth", price: "$29.99", genre: "Synthwave" },
     { id: 2, title: "Urban Jungle", producer: "BeatMaster", price: "$49.99", genre: "Trap" },
     { id: 3, title: "Midnight Rain", producer: "LoFiKing", price: "$19.99", genre: "Lo-Fi" },
     { id: 4, title: "Electric Soul", producer: "SoulVibe", price: "$34.99", genre: "R&B" },
   ];
+
+  const handleBuy = (id: number) => {
+    setPurchased([...purchased, id]);
+    confetti({
+      particleCount: 50,
+      spread: 50,
+      origin: { y: 0.8 }
+    });
+  };
 
   return (
     <div className="space-y-6 lg:space-y-10">
@@ -1630,8 +1937,12 @@ function MarketplaceView() {
               <p className="text-xs text-white/40 font-bold uppercase tracking-widest mt-1">by {beat.producer}</p>
               <div className="mt-6 flex items-center justify-between">
                 <span className="text-xl font-display font-black text-cyber-cyan">{beat.price}</span>
-                <button className="bg-electric-purple hover:bg-electric-purple/90 text-white p-2 rounded-lg transition-all">
-                  <ShoppingBag size={18} />
+                <button 
+                  onClick={() => handleBuy(beat.id)}
+                  disabled={purchased.includes(beat.id)}
+                  className={`p-2 rounded-lg transition-all ${purchased.includes(beat.id) ? 'bg-emerald-400 text-ink' : 'bg-electric-purple hover:bg-electric-purple/90 text-white'}`}
+                >
+                  {purchased.includes(beat.id) ? <ShieldCheck size={18} /> : <ShoppingBag size={18} />}
                 </button>
               </div>
             </div>
@@ -1718,6 +2029,22 @@ function LoginView({ onLogin }: { onLogin: (e: string, p: string) => void }) {
 }
 
 function FinancingView() {
+  const [checking, setChecking] = useState(false);
+  const [eligible, setEligible] = useState<boolean | null>(null);
+
+  const checkEligibility = () => {
+    setChecking(true);
+    setTimeout(() => {
+      setChecking(false);
+      setEligible(true);
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    }, 2000);
+  };
+
   return (
     <div className="space-y-6 lg:space-y-10">
       <div className="flex justify-between items-center">
@@ -1738,26 +2065,43 @@ function FinancingView() {
             <CreditCard size={32} className="lg:hidden" />
             <CreditCard size={40} className="hidden lg:block" />
           </div>
-          <h2 className="text-3xl lg:text-5xl font-display font-black tracking-tighter leading-tight">Get an advance on your <span className="text-transparent bg-clip-text bg-gradient-to-r from-electric-purple to-neon-pink">future royalties</span>.</h2>
-          <p className="text-base lg:text-xl text-white/50 leading-relaxed font-medium">
-            We partner with Sound Royalties to provide non-recourse funding based on your streaming history. Keep 100% of your masters and creative control.
-          </p>
-          <div className="pt-4 lg:pt-6 flex flex-col sm:flex-row gap-4 lg:gap-6">
-            <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="w-full sm:w-auto bg-white text-ink px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl shadow-white/10"
-            >
-              Check Eligibility
-            </motion.button>
-            <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="w-full sm:w-auto bg-white/5 hover:bg-white/10 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs border border-white/10 transition-all"
-            >
-              Learn More
-            </motion.button>
-          </div>
+          
+          {eligible ? (
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6">
+              <h2 className="text-3xl lg:text-5xl font-display font-black tracking-tighter leading-tight text-emerald-400">You are eligible for an advance of up to $25,000!</h2>
+              <p className="text-base lg:text-xl text-white/50 leading-relaxed font-medium">
+                Based on your streaming data, we can offer you an immediate advance. No credit check required.
+              </p>
+              <button className="bg-white text-ink px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl shadow-white/10">
+                Claim Advance Now
+              </button>
+            </motion.div>
+          ) : (
+            <>
+              <h2 className="text-3xl lg:text-5xl font-display font-black tracking-tighter leading-tight">Get an advance on your <span className="text-transparent bg-clip-text bg-gradient-to-r from-electric-purple to-neon-pink">future royalties</span>.</h2>
+              <p className="text-base lg:text-xl text-white/50 leading-relaxed font-medium">
+                We partner with Sound Royalties to provide non-recourse funding based on your streaming history. Keep 100% of your masters and creative control.
+              </p>
+              <div className="pt-4 lg:pt-6 flex flex-col sm:flex-row gap-4 lg:gap-6">
+                <motion.button 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={checkEligibility}
+                  disabled={checking}
+                  className="w-full sm:w-auto bg-white text-ink px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl shadow-white/10 disabled:opacity-50"
+                >
+                  {checking ? 'Analyzing Data...' : 'Check Eligibility'}
+                </motion.button>
+                <motion.button 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full sm:w-auto bg-white/5 hover:bg-white/10 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs border border-white/10 transition-all"
+                >
+                  Learn More
+                </motion.button>
+              </div>
+            </>
+          )}
         </div>
       </motion.div>
       
