@@ -13,6 +13,11 @@ import royaltyRoutes from './routes/royaltyRoutes';
 import marketingRoutes from './routes/marketingRoutes';
 import facebookAdsRoutes from './routes/facebookAdsRoutes';
 import trackRoutes from './routes/trackRoutes';
+import legalRoutes from './routes/legalRoutes';
+import marketplaceRoutes from './routes/marketplaceRoutes';
+import financingRoutes from './routes/financingRoutes';
+import bulkUploadRoutes from './routes/bulkUploadRoutes';
+import moodRoutes from './routes/moodRoutes';
 import { upload } from './middleware/upload';
 import { authenticate } from './middleware/auth';
 
@@ -43,6 +48,11 @@ async function startServer() {
   app.use('/api/marketing', marketingRoutes);
   app.use('/api/facebook-ads', facebookAdsRoutes);
   app.use('/api/tracks', trackRoutes);
+  app.use('/api/legal-agent', legalRoutes);
+  app.use('/api/marketplace', marketplaceRoutes);
+  app.use('/api/financing', financingRoutes);
+  app.use('/api/upload', bulkUploadRoutes);
+  app.use('/api/mood', moodRoutes);
 
   app.post('/api/upload', authenticate, upload.single('file'), (req: any, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });

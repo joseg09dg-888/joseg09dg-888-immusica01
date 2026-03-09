@@ -1,4 +1,5 @@
 import express from 'express';
+import { body } from 'express-validator';
 import { authenticate } from '../middleware/auth';
 import { upload } from '../middleware/upload';
 import {
@@ -13,7 +14,14 @@ const router = express.Router();
 router.use(authenticate);
 
 router.get('/', getMyTracks);
-router.post('/', upload.single('audio'), createTrack);
+router.post('/', 
+  [
+    body('title').notEmpty().trim().escape(),
+    body('artist_id').isNumeric()
+  ],
+  upload.single('audio'), 
+  createTrack
+);
 router.put('/:id', upload.single('audio'), updateTrack);
 router.delete('/:id', deleteTrack);
 

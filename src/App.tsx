@@ -25,14 +25,50 @@ import {
   LogOut,
   Facebook,
   Megaphone,
-  Calendar
+  Calendar,
+  Upload,
+  Heart,
+  Loader,
+  AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
+import { Toaster, toast } from 'sonner';
 import { Artist, Track, RoyaltySummary, User, Branding } from './types';
 import { geminiService } from './services/geminiService';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://fascinating-particulate-teodora.ngrok-free.dev';
+const API_URL = import.meta.env.VITE_API_URL || '';
+
+// Helper for fetch with error handling
+const safeFetch = async (url: string, options?: RequestInit) => {
+  try {
+    const response = await fetch(url, options);
+    const contentType = response.headers.get('content-type');
+    
+    if (!response.ok) {
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+      }
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+
+    if (contentType && contentType.includes('application/json')) {
+      return await response.json();
+    }
+    
+    // If we expected JSON but got HTML, it's likely a 404 or SPA fallback
+    if (contentType && contentType.includes('text/html')) {
+      console.error('Expected JSON but received HTML. This usually means the API route was not found or the server returned an error page.');
+      throw new Error('El servidor devolvió una página HTML en lugar de datos. Verifica la ruta de la API.');
+    }
+
+    return response;
+  } catch (error: any) {
+    console.error(`Fetch error for ${url}:`, error);
+    throw error;
+  }
+};
 
 // --- Components ---
 
@@ -70,6 +106,19 @@ const StatCard = ({ label, value, trend, icon: Icon, colorClass = "text-electric
     <div className="relative z-10">
       <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em]">{label}</p>
       <h3 className="text-2xl lg:text-4xl font-display font-black mt-1 tracking-tighter">{value}</h3>
+    </div>
+    
+    {/* Mini Chart Mockup */}
+    <div className="mt-2 h-8 flex items-end gap-1 opacity-20 group-hover:opacity-40 transition-opacity">
+      {[40, 70, 45, 90, 65, 80, 50, 85].map((h, i) => (
+        <motion.div 
+          key={i}
+          initial={{ height: 0 }}
+          animate={{ height: `${h}%` }}
+          transition={{ delay: i * 0.05, duration: 0.5 }}
+          className={`flex-1 rounded-t-sm ${colorClass.replace('text-', 'bg-')}`}
+        />
+      ))}
     </div>
   </motion.div>
 );
@@ -400,6 +449,7 @@ function FacebookAdsPanel({ branding }: { branding: Branding | null }) {
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [servicesOpen, setServicesOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -407,6 +457,13 @@ export default function App() {
   const [branding, setBranding] = useState<Branding | null>(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(localStorage.getItem('im_music_token'));
+  const [currentGlobalTrack, setCurrentGlobalTrack] = useState<any>(null);
+
+  useEffect(() => {
+    if (['dashboard', 'catalog', 'marketing', 'royalties', 'marketplace', 'legal', 'financing', 'upload', 'discovery'].includes(activeTab)) {
+      setServicesOpen(true);
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (token) {
@@ -424,20 +481,31 @@ export default function App() {
             'Authorization': `Bearer ${token}`
           }
         });
+        
+        const contentType = r.headers.get('content-type');
+        
         if (r.status === 401 || r.status === 403) {
           handleLogout();
           throw new Error("Session expired");
         }
+        
         if (!r.ok) {
           let errorMsg = `HTTP error! status: ${r.status}`;
-          try {
-            const errorData = await r.json();
-            errorMsg = errorData.error || errorMsg;
-          } catch (e) {
-            // Not JSON
+          if (contentType && contentType.includes('application/json')) {
+            try {
+              const errorData = await r.json();
+              errorMsg = errorData.error || errorMsg;
+            } catch (e) {
+              // Not JSON
+            }
           }
           throw new Error(errorMsg);
         }
+
+        if (contentType && contentType.includes('text/html')) {
+          throw new Error("API returned HTML instead of JSON. Check backend routes.");
+        }
+
         return r.json();
       };
 
@@ -453,9 +521,9 @@ export default function App() {
       setTracks(tracksRes);
       setRoyalties(royaltiesRes);
       setBranding(brandingRes);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to fetch data", err);
-      if (retries > 0) {
+      if (retries > 0 && !err.message.includes("Session expired")) {
         console.log(`Retrying fetch... (${retries} attempts left)`);
         setTimeout(() => fetchInitialData(retries - 1), 1000);
       }
@@ -472,26 +540,25 @@ export default function App() {
 
   const handleLogin = async (email: string, password: string) => {
     try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
+      const data = await safeFetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-      if (!res.ok) throw new Error("Invalid credentials");
-      const data = await res.json();
       localStorage.setItem('im_music_token', data.token);
       setToken(data.token);
-    } catch (err) {
-      alert("Login failed: " + (err as Error).message);
+    } catch (err: any) {
+      alert("Login failed: " + err.message);
+      toast.error("Login failed: " + err.message);
     }
   };
 
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardView user={user} artists={artists} tracks={tracks} royalties={royalties} onNavigate={setActiveTab} />;
+        return <DashboardView user={user} artists={artists} tracks={tracks} royalties={royalties} onNavigate={setActiveTab} onPlay={setCurrentGlobalTrack} />;
       case 'catalog':
-        return <CatalogView tracks={tracks} artists={artists} onAddTrack={() => fetchInitialData()} onAddArtist={() => fetchInitialData()} />;
+        return <CatalogView tracks={tracks} artists={artists} onAddTrack={() => fetchInitialData()} onAddArtist={() => fetchInitialData()} onNavigate={setActiveTab} onPlay={setCurrentGlobalTrack} />;
       case 'marketing':
         return <MarketingView artists={artists} branding={branding} onUpdateBranding={() => fetchInitialData()} token={token} />;
       case 'royalties':
@@ -502,6 +569,10 @@ export default function App() {
         return <FinancingView />;
       case 'marketplace':
         return <MarketplaceView />;
+      case 'upload':
+        return <UploadView onUploadSuccess={() => fetchInitialData()} />;
+      case 'discovery':
+        return <DiscoveryMoodView onPlay={setCurrentGlobalTrack} />;
       default:
         return <DashboardView user={user} artists={artists} tracks={tracks} royalties={royalties} onNavigate={setActiveTab} />;
     }
@@ -525,6 +596,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-ink overflow-hidden bg-mesh relative">
+      <Toaster position="bottom-right" richColors theme="dark" />
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {mobileMenuOpen && (
@@ -565,13 +637,39 @@ export default function App() {
         </div>
 
         <nav className="flex-1 flex flex-col gap-2 overflow-y-auto pr-2 pb-4 custom-scrollbar">
-          <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setMobileMenuOpen(false); }} />
-          <SidebarItem icon={Music} label="Catalog" active={activeTab === 'catalog'} onClick={() => { setActiveTab('catalog'); setMobileMenuOpen(false); }} />
-          <SidebarItem icon={TrendingUp} label="Marketing" active={activeTab === 'marketing'} onClick={() => { setActiveTab('marketing'); setMobileMenuOpen(false); }} />
-          <SidebarItem icon={DollarSign} label="Royalties" active={activeTab === 'royalties'} onClick={() => { setActiveTab('royalties'); setMobileMenuOpen(false); }} />
-          <SidebarItem icon={ShoppingBag} label="Marketplace" active={activeTab === 'marketplace'} onClick={() => { setActiveTab('marketplace'); setMobileMenuOpen(false); }} />
-          <SidebarItem icon={ShieldCheck} label="Legal" active={activeTab === 'legal'} onClick={() => { setActiveTab('legal'); setMobileMenuOpen(false); }} />
-          <SidebarItem icon={CreditCard} label="Financing" active={activeTab === 'financing'} onClick={() => { setActiveTab('financing'); setMobileMenuOpen(false); }} />
+          <div className="mt-2">
+            <button 
+              onClick={() => setServicesOpen(!servicesOpen)}
+              className="w-full flex items-center justify-between px-4 py-3 text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <Zap size={20} className="text-electric-purple" />
+                <span className="font-medium tracking-tight">Servicios</span>
+              </div>
+              <ChevronRight size={16} className={`transition-transform duration-300 ${servicesOpen ? 'rotate-90' : ''}`} />
+            </button>
+            
+            <AnimatePresence>
+              {servicesOpen && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden flex flex-col gap-1 pl-4 mt-1"
+                >
+                  <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setMobileMenuOpen(false); }} />
+                  <SidebarItem icon={Music} label="Catalog" active={activeTab === 'catalog'} onClick={() => { setActiveTab('catalog'); setMobileMenuOpen(false); }} />
+                  <SidebarItem icon={TrendingUp} label="Marketing" active={activeTab === 'marketing'} onClick={() => { setActiveTab('marketing'); setMobileMenuOpen(false); }} />
+                  <SidebarItem icon={DollarSign} label="Royalties" active={activeTab === 'royalties'} onClick={() => { setActiveTab('royalties'); setMobileMenuOpen(false); }} />
+                  <SidebarItem icon={ShoppingBag} label="Marketplace" active={activeTab === 'marketplace'} onClick={() => { setActiveTab('marketplace'); setMobileMenuOpen(false); }} />
+                  <SidebarItem icon={ShieldCheck} label="Legal" active={activeTab === 'legal'} onClick={() => { setActiveTab('legal'); setMobileMenuOpen(false); }} />
+                  <SidebarItem icon={CreditCard} label="Financing" active={activeTab === 'financing'} onClick={() => { setActiveTab('financing'); setMobileMenuOpen(false); }} />
+                  <SidebarItem icon={Upload} label="Migrar Catálogo" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setMobileMenuOpen(false); }} />
+                  <SidebarItem icon={Heart} label="Discovery Mood" active={activeTab === 'discovery'} onClick={() => { setActiveTab('discovery'); setMobileMenuOpen(false); }} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </nav>
 
         <div className="pt-6 border-t border-white/5">
@@ -608,22 +706,39 @@ export default function App() {
               onClick={() => setMobileMenuOpen(true)}
               className="lg:hidden p-2 text-white/60 hover:text-white bg-white/5 rounded-xl"
             >
-              <Menu size={20} />
+              <Menu size={24} />
             </button>
-            <h2 className="text-lg lg:text-xl font-display font-bold capitalize">{activeTab}</h2>
-          </div>
-          <div className="flex items-center gap-2 lg:gap-4">
-            <div className="relative hidden md:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={18} />
-              <input 
-                type="text" 
-                placeholder="Search..." 
-                className="bg-white/5 border border-white/10 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-electric-purple/50 w-40 lg:w-64 transition-all"
-              />
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white/20">
+                <Search size={20} />
+              </div>
+              <p className="text-xs font-bold text-white/20 hidden md:block">Search anything...</p>
             </div>
-            <button className="p-2 rounded-full bg-white/5 text-white/60 hover:text-white transition-colors">
-              <Bell size={20} />
+          </div>
+          <div className="flex items-center gap-4 lg:gap-6">
+            <button 
+              onClick={() => fetchInitialData()}
+              className="p-3 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white rounded-xl transition-all"
+              title="Refresh Data"
+            >
+              <Zap size={20} className={loading ? 'animate-spin' : ''} />
             </button>
+            <div className="relative">
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-neon-pink rounded-full border-2 border-ink flex items-center justify-center text-[8px] font-black">2</div>
+              <Bell size={20} className="text-white/40 hover:text-white transition-colors cursor-pointer" />
+            </div>
+            <div className="h-10 w-[1px] bg-white/5 mx-2" />
+            <div className="flex items-center gap-4">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-black tracking-tight">{user?.name}</p>
+                <p className="text-[10px] font-black text-electric-purple uppercase tracking-widest">{user?.role}</p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-white/10 to-white/5 rounded-2xl border border-white/10 p-0.5">
+                <div className="w-full h-full bg-ink rounded-[14px] flex items-center justify-center text-white/20">
+                  <UserIcon size={24} />
+                </div>
+              </div>
+            </div>
           </div>
         </header>
 
@@ -641,13 +756,56 @@ export default function App() {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Global Player Bar */}
+      <AnimatePresence>
+        {currentGlobalTrack && (
+          <motion.div 
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            exit={{ y: 100 }}
+            className="fixed bottom-0 left-0 right-0 z-[100] p-4 lg:p-6"
+          >
+            <div className="max-w-5xl mx-auto glass-card p-4 bg-ink/80 backdrop-blur-3xl border-electric-purple/30 shadow-2xl shadow-electric-purple/20 flex items-center gap-6">
+              <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-xl overflow-hidden bg-white/5 shrink-0">
+                {currentGlobalTrack.image ? (
+                  <img src={currentGlobalTrack.image} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white/20">
+                    <Music size={24} />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-black text-sm lg:text-base truncate">{currentGlobalTrack.name || currentGlobalTrack.title}</h4>
+                <p className="text-[10px] lg:text-xs text-white/40 font-medium truncate">{currentGlobalTrack.artists?.join(', ') || 'Unknown Artist'}</p>
+              </div>
+              <div className="flex items-center gap-4 lg:gap-8">
+                <audio 
+                  autoPlay 
+                  src={currentGlobalTrack.preview_url || currentGlobalTrack.file_url} 
+                  onEnded={() => setCurrentGlobalTrack(null)}
+                  className="hidden lg:block w-48 h-8 opacity-50 hover:opacity-100 transition-opacity" 
+                  controls 
+                />
+                <button 
+                  onClick={() => setCurrentGlobalTrack(null)}
+                  className="p-2 text-white/20 hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 // --- Views ---
 
-function DashboardView({ user, artists, tracks, royalties, onNavigate }: any) {
+function DashboardView({ user, artists, tracks, royalties, onNavigate, onPlay }: any) {
   const totalStreams = tracks.reduce((acc: number, t: any) => acc + (Math.floor(((t.id * 12345) % 500000) + 10000)), 0);
   
   return (
@@ -723,7 +881,10 @@ function DashboardView({ user, artists, tracks, royalties, onNavigate }: any) {
                         </p>
                       </div>
                     </div>
-                    <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white group-hover:text-ink transition-all shrink-0">
+                    <div 
+                      onClick={() => onPlay(track)}
+                      className="w-8 h-8 lg:w-10 lg:h-10 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-white group-hover:text-ink transition-all shrink-0"
+                    >
                       <Play size={14} fill="currentColor" className="lg:hidden" />
                       <Play size={16} fill="currentColor" className="hidden lg:block" />
                     </div>
@@ -810,22 +971,75 @@ function DashboardView({ user, artists, tracks, royalties, onNavigate }: any) {
   );
 }
 
-function CatalogView({ tracks, artists, onAddTrack, onAddArtist }: { tracks: Track[], artists: Artist[], onAddTrack: () => void, onAddArtist: () => void }) {
+function CatalogView({ tracks, artists, onAddTrack, onAddArtist, onNavigate, onPlay }: { tracks: Track[], artists: Artist[], onAddTrack: () => void, onAddArtist: () => void, onNavigate: (tab: string) => void, onPlay: (track: any) => void }) {
   const [showAddTrack, setShowAddTrack] = useState(false);
   const [showAddArtist, setShowAddArtist] = useState(false);
+  const [showMigrate, setShowMigrate] = useState(false);
   const [selectedArtistId, setSelectedArtistId] = useState<number | ''>(artists.length > 0 ? artists[0].id : '');
   const [newTrack, setNewTrack] = useState({ title: '', release_date: '', file_url: '' });
   const [newArtist, setNewArtist] = useState({ name: '', genre: '', bio: '' });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
   const [token] = useState(localStorage.getItem('im_music_token'));
 
+  const handleMigrate = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!selectedArtistId) {
+      toast.error("Selecciona un artista primero");
+      return;
+    }
+
+    setIsMigrating(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = (reader.result as string).split(',')[1];
+        const result = await geminiService.migrateCatalog(base64, file.type);
+        
+        if (result.tracks && result.tracks.length > 0) {
+          // Crear los tracks uno por uno
+          for (const track of result.tracks) {
+            await safeFetch(`${API_URL}/api/tracks`, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ 
+                title: track.title, 
+                artist_id: selectedArtistId,
+                isrc: track.isrc,
+                upc: track.upc,
+                release_date: track.release_date
+              })
+            });
+          }
+          toast.success(`Se han migrado ${result.tracks.length} tracks exitosamente.`);
+          onAddTrack();
+          setShowMigrate(false);
+        } else {
+          toast.error("No se detectaron tracks en el documento.");
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      toast.error("Error en migración: " + err.message);
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
   const handleAddTrack = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedArtistId) return alert("Select an artist first");
+    if (!selectedArtistId) {
+      toast.error("Select an artist first");
+      return;
+    }
     try {
-      const res = await fetch(`${API_URL}/api/tracks`, {
+      const data = await safeFetch(`${API_URL}/api/tracks`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -833,8 +1047,6 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist }: { tracks: Tra
         },
         body: JSON.stringify({ ...newTrack, artist_id: selectedArtistId })
       });
-      
-      if (!res.ok) throw new Error("Failed to add track");
       
       confetti({
         particleCount: 150,
@@ -846,18 +1058,32 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist }: { tracks: Tra
       setNewTrack({ title: '', release_date: '', file_url: '' });
       setShowAddTrack(false);
       onAddTrack();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      toast.error("Error adding track: " + err.message);
+    }
+  };
+
+  const handleDeleteTrack = async (id: number) => {
+    if (!confirm("¿Estás seguro de eliminar este track?")) return;
+    try {
+      await safeFetch(`${API_URL}/api/tracks/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      onAddTrack();
+    } catch (err: any) {
+      alert("Error: " + err.message);
     }
   };
 
   const handleAddArtist = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const userRes = await fetch(`${API_URL}/api/auth/me`, { headers: { 'Authorization': `Bearer ${token}` } });
-      const userData = await userRes.json();
+      const userData = await safeFetch(`${API_URL}/api/auth/me`, { 
+        headers: { 'Authorization': `Bearer ${token}` } 
+      });
       
-      const res = await fetch(`${API_URL}/api/artists`, {
+      await safeFetch(`${API_URL}/api/artists`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -866,13 +1092,24 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist }: { tracks: Tra
         body: JSON.stringify({ ...newArtist, user_id: userData.id })
       });
       
-      if (!res.ok) throw new Error("Failed to add artist");
-      
       setNewArtist({ name: '', genre: '', bio: '' });
       setShowAddArtist(false);
       onAddArtist();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      alert("Error adding artist: " + err.message);
+    }
+  };
+
+  const handleDeleteArtist = async (id: number) => {
+    if (!confirm("¿Estás seguro de eliminar este artista? Esto podría fallar si tiene tracks asociados.")) return;
+    try {
+      await safeFetch(`${API_URL}/api/artists/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      onAddArtist();
+    } catch (err: any) {
+      alert("Error: " + err.message);
     }
   };
 
@@ -894,6 +1131,29 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist }: { tracks: Tra
       console.error(err);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleDistribute = async (trackId: number) => {
+    try {
+      await safeFetch(`${API_URL}/api/tracks/${trackId}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: 'distributed' })
+      });
+      toast.success("Track enviado a distribución (Spotify, Apple Music, Tidal, etc.)");
+      confetti({
+        particleCount: 200,
+        spread: 100,
+        origin: { y: 0.6 },
+        colors: ['#7D3CFF', '#FF00E5', '#00F0FF', '#00FF00']
+      });
+      onAddTrack();
+    } catch (err: any) {
+      toast.error("Error: " + err.message);
     }
   };
 
@@ -921,6 +1181,15 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist }: { tracks: Tra
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            onClick={() => onNavigate('upload')}
+            className="flex-1 md:flex-none bg-electric-purple/10 text-electric-purple px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] border border-electric-purple/20 transition-all flex items-center gap-2"
+          >
+            <Sparkles size={14} />
+            Migrar Catálogo
+          </motion.button>
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setShowAddArtist(true)}
             className="flex-1 md:flex-none bg-white/5 hover:bg-white/10 text-white px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] border border-white/10 transition-all"
           >
@@ -945,7 +1214,13 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist }: { tracks: Tra
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {artists.map((artist) => (
-            <div key={artist.id} className={`glass-card p-6 border-2 transition-all cursor-pointer ${selectedArtistId === artist.id ? 'border-electric-purple bg-electric-purple/5' : 'border-transparent hover:border-white/10'}`} onClick={() => setSelectedArtistId(artist.id)}>
+            <div key={artist.id} className={`glass-card p-6 border-2 transition-all cursor-pointer relative group ${selectedArtistId === artist.id ? 'border-electric-purple bg-electric-purple/5' : 'border-transparent hover:border-white/10'}`} onClick={() => setSelectedArtistId(artist.id)}>
+              <button 
+                onClick={(e) => { e.stopPropagation(); handleDeleteArtist(artist.id); }}
+                className="absolute top-4 right-4 p-2 text-white/10 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+              >
+                <X size={16} />
+              </button>
               <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-white/20 mb-4">
                 <UserIcon size={24} />
               </div>
@@ -981,6 +1256,7 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist }: { tracks: Tra
                   <motion.button 
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
+                    onClick={(e) => { e.stopPropagation(); onPlay(track); }}
                     className="w-16 h-16 bg-white text-ink rounded-full flex items-center justify-center shadow-2xl"
                   >
                     <Play size={24} fill="currentColor" />
@@ -996,11 +1272,27 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist }: { tracks: Tra
                   <div className={`w-2 h-2 rounded-full mt-2 ${track.status === 'distributed' ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]'}`} />
                 </div>
                 <div className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
-                  <span className={`text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full ${
-                    track.status === 'distributed' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-amber-400/10 text-amber-400'
-                  }`}>
-                    {track.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full ${
+                      track.status === 'distributed' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-amber-400/10 text-amber-400'
+                    }`}>
+                      {track.status}
+                    </span>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleDeleteTrack(track.id); }}
+                      className="p-1 text-white/10 hover:text-red-400 transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                    {track.status !== 'distributed' && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDistribute(track.id); }}
+                        className="ml-2 bg-emerald-400 text-ink px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest hover:bg-emerald-300 transition-all"
+                      >
+                        Distribute
+                      </button>
+                    )}
+                  </div>
                   <p className="text-[10px] text-white/20 font-tech font-bold uppercase tracking-widest">ISRC: {track.isrc || 'PENDING'}</p>
                 </div>
               </div>
@@ -1104,6 +1396,73 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist }: { tracks: Tra
             </motion.div>
           </motion.div>
         )}
+
+        {showMigrate && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-ink/80 backdrop-blur-xl">
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="glass-card p-10 max-w-2xl w-full space-y-8">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-3xl font-display font-black tracking-tight">AI Catalog Migration</h3>
+                  <p className="text-white/40 mt-2 font-medium">Sube un contrato, split sheet o captura de pantalla para migrar tu catálogo.</p>
+                </div>
+                <button onClick={() => setShowMigrate(false)} className="p-2 text-white/20 hover:text-white"><X size={24} /></button>
+              </div>
+              
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-white/30">Selecciona el Artista Destino</label>
+                  <select 
+                    value={selectedArtistId} 
+                    onChange={e => setSelectedArtistId(Number(e.target.value))}
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 focus:outline-none focus:border-electric-purple transition-all font-bold"
+                  >
+                    <option value="" disabled className="bg-ink">Select Artist</option>
+                    {artists.map(a => <option key={a.id} value={a.id} className="bg-ink">{a.name}</option>)}
+                  </select>
+                </div>
+
+                <div className="relative">
+                  <input 
+                    type="file" 
+                    accept="image/*,application/pdf" 
+                    onChange={handleMigrate} 
+                    className="hidden" 
+                    id="migrate-upload" 
+                    disabled={isMigrating}
+                  />
+                  <label htmlFor="migrate-upload" className="w-full bg-white/5 border border-dashed border-white/20 rounded-3xl p-12 flex flex-col items-center justify-center cursor-pointer hover:border-electric-purple/50 transition-all group">
+                    {isMigrating ? (
+                      <div className="flex flex-col items-center gap-4">
+                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
+                          <Sparkles className="text-electric-purple" size={48} />
+                        </motion.div>
+                        <p className="text-sm font-black text-electric-purple animate-pulse">IA ANALIZANDO DOCUMENTO...</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="w-20 h-20 bg-electric-purple/10 rounded-full flex items-center justify-center text-electric-purple mb-6 group-hover:scale-110 transition-transform">
+                          <FileText size={32} />
+                        </div>
+                        <h4 className="text-xl font-black mb-2">Sube tu documento</h4>
+                        <p className="text-sm text-white/30 font-medium text-center max-w-xs">PDF de contrato, imagen de split sheet o reporte de otro distribuidor.</p>
+                      </>
+                    )}
+                  </label>
+                </div>
+
+                <div className="bg-white/5 p-6 rounded-2xl border border-white/5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <ShieldCheck className="text-emerald-400" size={20} />
+                    <h5 className="font-black text-xs uppercase tracking-widest">Seguridad IA</h5>
+                  </div>
+                  <p className="text-[10px] text-white/40 leading-relaxed">
+                    Nuestra IA procesa la información de forma privada para extraer ISRC, UPC y metadata técnica. No almacenamos copias de tus contratos legales más allá del procesamiento.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );
@@ -1119,12 +1478,11 @@ function MarketingView({ artists, branding, onUpdateBranding, token }: { artists
 
   useEffect(() => {
     if (step === 'test' && questions.length === 0) {
-      fetch(`${API_URL}/api/marketing/preguntas`, {
+      safeFetch(`${API_URL}/api/marketing/preguntas`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
-        .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) {
             setQuestions(data);
@@ -1153,7 +1511,7 @@ function MarketingView({ artists, branding, onUpdateBranding, token }: { artists
   const submitTest = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/marketing/test`, {
+      await safeFetch(`${API_URL}/api/marketing/test`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -1161,11 +1519,10 @@ function MarketingView({ artists, branding, onUpdateBranding, token }: { artists
         },
         body: JSON.stringify({ respuestas: answers })
       });
-      if (!res.ok) throw new Error("Failed to submit test");
       onUpdateBranding();
       setStep('branding');
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      alert("Error: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -1174,13 +1531,13 @@ function MarketingView({ artists, branding, onUpdateBranding, token }: { artists
   const generateBranding = async () => {
     setLoading(true);
     try {
-      await fetch(`${API_URL}/api/marketing/generar-branding`, {
+      await safeFetch(`${API_URL}/api/marketing/generar-branding`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       onUpdateBranding();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      alert("Error: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -1189,13 +1546,13 @@ function MarketingView({ artists, branding, onUpdateBranding, token }: { artists
   const generateMarket = async () => {
     setLoading(true);
     try {
-      await fetch(`${API_URL}/api/marketing/generar-mercado`, {
+      await safeFetch(`${API_URL}/api/marketing/generar-mercado`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       onUpdateBranding();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      alert("Error: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -1204,13 +1561,13 @@ function MarketingView({ artists, branding, onUpdateBranding, token }: { artists
   const generatePlan = async () => {
     setLoading(true);
     try {
-      await fetch(`${API_URL}/api/marketing/generar-plan`, {
+      await safeFetch(`${API_URL}/api/marketing/generar-plan`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       onUpdateBranding();
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      alert("Error: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -1508,36 +1865,35 @@ function RoyaltiesView({ royalties, onUploadSuccess }: { royalties: RoyaltySumma
   const [token] = useState(localStorage.getItem('im_music_token'));
 
   useEffect(() => {
-    fetch(`${API_URL}/api/royalties`, {
+    safeFetch(`${API_URL}/api/royalties`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
-      .then(res => res.json())
-      .then(data => setDetailedRoyalties(data));
+      .then(data => setDetailedRoyalties(data))
+      .catch(err => console.error(err));
   }, []);
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/royalties/upload`, {
+      await safeFetch(`${API_URL}/api/royalties/upload`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}` 
         },
         body: JSON.stringify({ csv: csvText })
       });
-      if (!res.ok) throw new Error("Upload failed");
       onUploadSuccess();
       setShowUpload(false);
       setCsvText('');
       // Refresh detailed list
-      const updated = await fetch(`${API_URL}/api/royalties`, {
+      const updated = await safeFetch(`${API_URL}/api/royalties`, {
         headers: { 'Authorization': `Bearer ${token}` }
-      }).then(r => r.json());
+      });
       setDetailedRoyalties(updated);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      alert("Error: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -1699,6 +2055,10 @@ function LegalView() {
   const [isReviewing, setIsReviewing] = useState(false);
   const [reviewResult, setReviewResult] = useState<any>(null);
   const [showUpload, setShowUpload] = useState(false);
+  const [consultation, setConsultation] = useState('');
+  const [isConsulting, setIsConsulting] = useState(false);
+  const [consultationResponse, setConsultationResponse] = useState('');
+  const [token] = useState(localStorage.getItem('im_music_token'));
 
   const handleReview = async () => {
     if (!contractText) return;
@@ -1711,6 +2071,26 @@ function LegalView() {
       alert("Error reviewing contract. Please try again.");
     } finally {
       setIsReviewing(false);
+    }
+  };
+
+  const handleConsult = async () => {
+    if (!consultation) return;
+    setIsConsulting(true);
+    try {
+      const data = await safeFetch(`${API_URL}/api/legal-agent/consultar`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ consulta: consultation })
+      });
+      setConsultationResponse(data.respuesta);
+    } catch (err: any) {
+      alert("Error en la consulta: " + err.message);
+    } finally {
+      setIsConsulting(false);
     }
   };
 
@@ -1733,12 +2113,29 @@ function LegalView() {
             <ShieldCheck size={32} />
           </div>
           <div>
-            <h3 className="text-2xl font-display font-black tracking-tight">Copyright Protection</h3>
-            <p className="text-white/50 mt-4 leading-relaxed font-medium">Register your works globally and protect your intellectual property with our automated legal filing system.</p>
+            <h3 className="text-2xl font-display font-black tracking-tight">Agente Legal IA</h3>
+            <p className="text-white/50 mt-4 leading-relaxed font-medium">Consulta dudas sobre contratos, derechos de autor o industria musical con nuestra IA especializada.</p>
           </div>
-          <button className="w-full bg-white/5 hover:bg-white/10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs transition-all border border-white/5">
-            Register New Work
-          </button>
+          <div className="space-y-4">
+            <textarea 
+              value={consultation}
+              onChange={(e) => setConsultation(e.target.value)}
+              placeholder="Ej: ¿Qué es una cláusula de recoupment?"
+              className="w-full h-24 bg-white/5 border border-white/10 rounded-xl p-4 text-sm focus:outline-none focus:border-electric-purple transition-all"
+            />
+            <button 
+              onClick={handleConsult}
+              disabled={isConsulting || !consultation}
+              className="w-full bg-electric-purple text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl shadow-electric-purple/20 disabled:opacity-50"
+            >
+              {isConsulting ? 'Consultando...' : 'Consultar Agente'}
+            </button>
+            {consultationResponse && (
+              <div className="p-4 bg-white/5 rounded-xl border border-white/10 text-xs text-white/70 leading-relaxed max-h-40 overflow-y-auto custom-scrollbar">
+                {consultationResponse}
+              </div>
+            )}
+          </div>
         </motion.div>
 
         <motion.div 
@@ -1888,21 +2285,40 @@ function LegalView() {
 }
 
 function MarketplaceView() {
+  const [beats, setBeats] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [purchased, setPurchased] = useState<number[]>([]);
-  const beats = [
-    { id: 1, title: "Neon Nights", producer: "CyberSynth", price: "$29.99", genre: "Synthwave" },
-    { id: 2, title: "Urban Jungle", producer: "BeatMaster", price: "$49.99", genre: "Trap" },
-    { id: 3, title: "Midnight Rain", producer: "LoFiKing", price: "$19.99", genre: "Lo-Fi" },
-    { id: 4, title: "Electric Soul", producer: "SoulVibe", price: "$34.99", genre: "R&B" },
-  ];
+  const [token] = useState(localStorage.getItem('im_music_token'));
 
-  const handleBuy = (id: number) => {
-    setPurchased([...purchased, id]);
-    confetti({
-      particleCount: 50,
-      spread: 50,
-      origin: { y: 0.8 }
-    });
+  useEffect(() => {
+    safeFetch(`${API_URL}/api/marketplace/beats`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(setBeats)
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  const handleBuy = async (id: number) => {
+    try {
+      await safeFetch(`${API_URL}/api/marketplace/buy`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ beatId: id })
+      });
+      setPurchased([...purchased, id]);
+      confetti({
+        particleCount: 50,
+        spread: 50,
+        origin: { y: 0.8 }
+      });
+      alert("¡Compra realizada con éxito!");
+    } catch (err: any) {
+      alert("Error en la compra: " + err.message);
+    }
   };
 
   return (
@@ -1919,36 +2335,42 @@ function MarketplaceView() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {beats.map((beat) => (
-          <motion.div 
-            key={beat.id}
-            whileHover={{ y: -5 }}
-            className="glass-card overflow-hidden group"
-          >
-            <div className="aspect-square bg-gradient-to-br from-electric-purple/20 to-neon-pink/20 flex items-center justify-center relative">
-              <Play size={48} className="text-white/20 group-hover:text-white group-hover:scale-110 transition-all cursor-pointer" />
-              <div className="absolute top-4 right-4 bg-ink/60 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/10">
-                {beat.genre}
+      {loading ? (
+        <div className="py-20 text-center">
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-8 h-8 border-2 border-electric-purple border-t-transparent rounded-full mx-auto" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {beats.map((beat) => (
+            <motion.div 
+              key={beat.id}
+              whileHover={{ y: -5 }}
+              className="glass-card overflow-hidden group"
+            >
+              <div className="aspect-square bg-gradient-to-br from-electric-purple/20 to-neon-pink/20 flex items-center justify-center relative">
+                <Play size={48} className="text-white/20 group-hover:text-white group-hover:scale-110 transition-all cursor-pointer" />
+                <div className="absolute top-4 right-4 bg-ink/60 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/10">
+                  {beat.genero}
+                </div>
               </div>
-            </div>
-            <div className="p-6">
-              <h4 className="font-black text-lg truncate">{beat.title}</h4>
-              <p className="text-xs text-white/40 font-bold uppercase tracking-widest mt-1">by {beat.producer}</p>
-              <div className="mt-6 flex items-center justify-between">
-                <span className="text-xl font-display font-black text-cyber-cyan">{beat.price}</span>
-                <button 
-                  onClick={() => handleBuy(beat.id)}
-                  disabled={purchased.includes(beat.id)}
-                  className={`p-2 rounded-lg transition-all ${purchased.includes(beat.id) ? 'bg-emerald-400 text-ink' : 'bg-electric-purple hover:bg-electric-purple/90 text-white'}`}
-                >
-                  {purchased.includes(beat.id) ? <ShieldCheck size={18} /> : <ShoppingBag size={18} />}
-                </button>
+              <div className="p-6">
+                <h4 className="font-black text-lg truncate">{beat.titulo}</h4>
+                <p className="text-xs text-white/40 font-bold uppercase tracking-widest mt-1">by {beat.productor}</p>
+                <div className="mt-6 flex items-center justify-between">
+                  <span className="text-xl font-display font-black text-cyber-cyan">${beat.precio / 100}</span>
+                  <button 
+                    onClick={() => handleBuy(beat.id)}
+                    disabled={purchased.includes(beat.id)}
+                    className={`p-2 rounded-lg transition-all ${purchased.includes(beat.id) ? 'bg-emerald-400 text-ink' : 'bg-electric-purple hover:bg-electric-purple/90 text-white'}`}
+                  >
+                    {purchased.includes(beat.id) ? <ShieldCheck size={18} /> : <ShoppingBag size={18} />}
+                  </button>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       <div className="glass-card p-10 bg-gradient-to-r from-electric-purple/10 to-neon-pink/10 border-white/10">
         <div className="flex flex-col md:flex-row items-center gap-8">
@@ -2030,19 +2452,41 @@ function LoginView({ onLogin }: { onLogin: (e: string, p: string) => void }) {
 
 function FinancingView() {
   const [checking, setChecking] = useState(false);
-  const [eligible, setEligible] = useState<boolean | null>(null);
+  const [eligibility, setEligibility] = useState<any>(null);
+  const [token] = useState(localStorage.getItem('im_music_token'));
 
-  const checkEligibility = () => {
+  const checkEligibility = async () => {
     setChecking(true);
-    setTimeout(() => {
-      setChecking(false);
-      setEligible(true);
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
+    try {
+      const data = await safeFetch(`${API_URL}/api/financing/mi-elegibilidad`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-    }, 2000);
+      setEligibility(data);
+      if (data.elegible) {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
+    } catch (err: any) {
+      alert("Error al verificar elegibilidad: " + err.message);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const handleSolicitar = async () => {
+    try {
+      const data = await safeFetch(`${API_URL}/api/financing/solicitar`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      alert(data.message);
+      if (data.contactUrl) window.open(data.contactUrl, '_blank');
+    } catch (err: any) {
+      alert("Error al solicitar adelanto: " + err.message);
+    }
   };
 
   return (
@@ -2066,15 +2510,29 @@ function FinancingView() {
             <CreditCard size={40} className="hidden lg:block" />
           </div>
           
-          {eligible ? (
+          {eligibility ? (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6">
-              <h2 className="text-3xl lg:text-5xl font-display font-black tracking-tighter leading-tight text-emerald-400">You are eligible for an advance of up to $25,000!</h2>
-              <p className="text-base lg:text-xl text-white/50 leading-relaxed font-medium">
-                Based on your streaming data, we can offer you an immediate advance. No credit check required.
-              </p>
-              <button className="bg-white text-ink px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl shadow-white/10">
-                Claim Advance Now
-              </button>
+              {eligibility.elegible ? (
+                <>
+                  <h2 className="text-3xl lg:text-5xl font-display font-black tracking-tighter leading-tight text-emerald-400">¡Eres elegible para un adelanto de hasta ${eligibility.ofertaMax.toLocaleString()}!</h2>
+                  <p className="text-base lg:text-xl text-white/50 leading-relaxed font-medium">
+                    {eligibility.razon}. No requerimos revisión de crédito.
+                  </p>
+                  <button onClick={handleSolicitar} className="bg-white text-ink px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl shadow-white/10">
+                    Solicitar Adelanto Ahora
+                  </button>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-3xl lg:text-5xl font-display font-black tracking-tighter leading-tight text-red-400">Aún no eres elegible para un adelanto.</h2>
+                  <p className="text-base lg:text-xl text-white/50 leading-relaxed font-medium">
+                    {eligibility.razon}. Sigue distribuyendo y aumentando tus streams para calificar.
+                  </p>
+                  <button onClick={() => setEligibility(null)} className="bg-white/5 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs border border-white/10">
+                    Volver a intentar
+                  </button>
+                </>
+              )}
             </motion.div>
           ) : (
             <>
@@ -2126,6 +2584,306 @@ function FinancingView() {
           </motion.div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function UploadView({ onUploadSuccess }: { onUploadSuccess: () => void }) {
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [results, setResults] = useState<any[]>([]);
+  const [token] = useState(localStorage.getItem('im_music_token'));
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFiles(Array.from(e.target.files));
+    }
+  };
+
+  const handleUpload = async () => {
+    if (files.length === 0) return;
+    setUploading(true);
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+
+    try {
+      const data = await safeFetch(`${API_URL}/api/upload/files`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      setResults(data.results || []);
+      alert(data.message);
+      onUploadSuccess();
+    } catch (err: any) {
+      alert("Error al subir archivos: " + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 lg:space-y-10">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl lg:text-4xl font-display font-black tracking-tighter">Migrar Catálogo</h1>
+          <p className="text-white/30 mt-2 font-medium text-sm lg:text-base">Sube tus tracks o documentos para migración masiva.</p>
+        </div>
+      </div>
+
+      <div className="glass-card p-10 space-y-8">
+        <div className="border-2 border-dashed border-white/10 rounded-3xl p-20 text-center hover:border-electric-purple/50 transition-all group cursor-pointer relative">
+          <input 
+            type="file" 
+            multiple 
+            onChange={handleFileChange}
+            className="absolute inset-0 opacity-0 cursor-pointer"
+          />
+          <Upload size={48} className="mx-auto mb-6 text-white/20 group-hover:text-electric-purple transition-colors" />
+          <p className="text-xl font-display font-bold">Arrastra tus archivos aquí</p>
+          <p className="text-sm text-white/40 mt-2">Soporta MP3, WAV, PDF, JPG, PNG</p>
+          {files.length > 0 && (
+            <div className="mt-6 p-4 bg-white/5 rounded-xl inline-block">
+              <p className="text-xs font-black text-electric-purple uppercase tracking-widest">{files.length} archivos seleccionados</p>
+            </div>
+          )}
+        </div>
+
+        <button 
+          onClick={handleUpload}
+          disabled={uploading || files.length === 0}
+          className="w-full bg-electric-purple text-white py-5 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-electric-purple/20 disabled:opacity-50"
+        >
+          {uploading ? 'Procesando...' : 'Iniciar Carga Masiva'}
+        </button>
+
+        {results.length > 0 && (
+          <div className="space-y-4 pt-10 border-t border-white/5">
+            <h3 className="text-lg font-display font-bold">Resultados del Procesamiento</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {results.map((res, i) => (
+                <div key={i} className="p-4 bg-white/5 rounded-xl border border-white/5 flex justify-between items-center">
+                  <span className="text-sm font-medium truncate max-w-[200px]">{res.file}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">
+                    {res.tracksExtracted ? `${res.tracksExtracted} tracks` : res.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const MOODS = [
+  { id: 'alegre', label: 'Alegre', emoji: '😊' },
+  { id: 'triste', label: 'Triste', emoji: '😢' },
+  { id: 'energético', label: 'Energético', emoji: '⚡' },
+  { id: 'relajado', label: 'Relajado', emoji: '😌' },
+  { id: 'romántico', label: 'Romántico', emoji: '❤️' },
+  { id: 'agresivo', label: 'Agresivo', emoji: '🤘' },
+  { id: 'feliz', label: 'Feliz', emoji: '😄' },
+  { id: 'melancólico', label: 'Melancólico', emoji: '🌧️' },
+];
+
+function DiscoveryMoodView({ onPlay }: { onPlay: (track: any) => void }) {
+  const [selectedMood, setSelectedMood] = useState('');
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [authRequired, setAuthRequired] = useState(false);
+
+  const fetchRecommendations = async (mood: string) => {
+    setLoading(true);
+    setError(null);
+    setAuthRequired(false);
+    try {
+      const res = await fetch(`${API_URL}/api/mood/recommendations?mood=${encodeURIComponent(mood)}&limit=12`);
+      if (res.status === 401) {
+        setAuthRequired(true);
+        setError('Necesitas autenticarte con Spotify primero.');
+        return;
+      }
+      if (!res.ok) throw new Error('Error al obtener recomendaciones');
+      const data = await res.json();
+      const tracks = data.tracks?.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        artists: item.artists.map((a: any) => a.name),
+        album: item.album.name,
+        preview_url: item.preview_url,
+        external_url: item.external_urls?.spotify,
+        image: item.album.images?.[0]?.url
+      })) || [];
+      setRecommendations(tracks);
+      toast.success(`Recomendaciones para sentirte ${mood} cargadas`);
+    } catch (err: any) {
+      setError(err.message);
+      toast.error("Error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMoodClick = (mood: string) => {
+    setSelectedMood(mood);
+    fetchRecommendations(mood);
+  };
+
+  return (
+    <div className="space-y-8 pb-24">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl lg:text-5xl font-display font-black tracking-tighter">
+            Discovery <span className="text-transparent bg-clip-text bg-gradient-to-r from-electric-purple to-neon-pink text-glow">Mood</span>
+          </h1>
+          <p className="text-white/40 mt-2 font-medium">Curaduría algorítmica basada en tu estado emocional.</p>
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Spotify Engine Active</span>
+        </div>
+      </div>
+
+      {authRequired && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass-card p-8 bg-gradient-to-br from-amber-500/20 to-transparent border-amber-500/30 flex flex-col md:flex-row items-center gap-8 text-center md:text-left"
+        >
+          <div className="w-20 h-20 bg-amber-500/20 rounded-3xl flex items-center justify-center text-amber-400 shrink-0">
+            <AlertCircle size={40} />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-2xl font-display font-black text-amber-400 mb-2">Conexión Requerida</h3>
+            <p className="text-white/60 mb-6 max-w-xl">
+              Para acceder a la inteligencia emocional de Spotify, necesitamos vincular tu cuenta. Esto nos permite analizar tu perfil y ofrecerte tracks exclusivos.
+            </p>
+            <a
+              href={`${API_URL}/api/mood/login`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 bg-white text-ink px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-paper transition-all shadow-xl shadow-white/10"
+            >
+              <Music size={18} />
+              Vincular con Spotify
+            </a>
+          </div>
+        </motion.div>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+        {MOODS.map((mood) => (
+          <motion.button
+            key={mood.id}
+            whileHover={{ scale: 1.05, y: -5 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => handleMoodClick(mood.id)}
+            className={`p-6 rounded-3xl flex flex-col items-center gap-3 transition-all duration-500 relative overflow-hidden group ${
+              selectedMood === mood.id
+                ? 'bg-gradient-to-br from-electric-purple to-neon-pink text-white shadow-2xl shadow-electric-purple/40 ring-2 ring-white/20'
+                : 'bg-white/5 text-white/40 hover:bg-white/10 border border-white/5'
+            }`}
+          >
+            <div className={`absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${selectedMood === mood.id ? 'hidden' : ''}`} />
+            <span className="text-4xl group-hover:scale-125 transition-transform duration-500 relative z-10">{mood.emoji}</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] relative z-10">{mood.label}</span>
+            {selectedMood === mood.id && (
+              <motion.div 
+                layoutId="mood-active"
+                className="absolute bottom-0 left-0 right-0 h-1 bg-white/40"
+              />
+            )}
+          </motion.button>
+        ))}
+      </div>
+
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-32 space-y-6">
+          <div className="relative">
+            <Loader className="animate-spin text-electric-purple" size={64} />
+            <div className="absolute inset-0 blur-2xl bg-electric-purple/20 animate-pulse" />
+          </div>
+          <p className="text-sm font-black uppercase tracking-[0.3em] text-white/20 animate-pulse">Analizando frecuencias emocionales...</p>
+        </div>
+      )}
+
+      {error && !authRequired && (
+        <div className="glass-card p-12 text-center space-y-4 border-red-500/20 bg-red-500/5">
+          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center text-red-400 mx-auto">
+            <X size={32} />
+          </div>
+          <h3 className="text-xl font-display font-black text-red-400">Error de Sincronización</h3>
+          <p className="text-white/40 max-w-md mx-auto">{error}</p>
+          <button onClick={() => handleMoodClick(selectedMood)} className="text-xs font-black uppercase tracking-widest text-white/60 hover:text-white underline underline-offset-8">Reintentar</button>
+        </div>
+      )}
+
+      {!loading && recommendations.length > 0 && (
+        <div className="space-y-8">
+          <div className="flex items-center gap-4">
+            <h2 className="text-2xl font-display font-black tracking-tight">
+              Vibras para sentirte <span className="text-transparent bg-clip-text bg-gradient-to-r from-electric-purple to-neon-pink capitalize">{selectedMood}</span>
+            </h2>
+            <div className="h-[1px] flex-1 bg-white/5" />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {recommendations.map((track, i) => (
+              <motion.div
+                key={track.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="glass-card p-6 flex flex-col gap-6 group hover:border-electric-purple/40 transition-all duration-500 relative overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-electric-purple/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                
+                <div className="relative aspect-square rounded-2xl overflow-hidden bg-white/5">
+                  {track.image ? (
+                    <img src={track.image} alt={track.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white/10">
+                      <Music size={48} />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                    <button 
+                      onClick={() => onPlay(track)}
+                      className="w-16 h-16 bg-white text-ink rounded-full flex items-center justify-center shadow-2xl transform scale-75 group-hover:scale-100 transition-all duration-500"
+                    >
+                      <Play size={24} fill="currentColor" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="relative z-10 space-y-1">
+                  <h4 className="font-black text-lg truncate group-hover:text-electric-purple transition-colors">{track.name}</h4>
+                  <p className="text-xs text-white/40 font-medium truncate">{track.artists.join(', ')}</p>
+                  <p className="text-[10px] text-white/20 uppercase tracking-[0.2em] font-black mt-2">{track.album}</p>
+                </div>
+                
+                <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-auto">
+                  <div className="flex gap-2">
+                    <button className="p-2 text-white/20 hover:text-neon-pink transition-colors"><Heart size={16} /></button>
+                    <button className="p-2 text-white/20 hover:text-cyber-cyan transition-colors"><Plus size={16} /></button>
+                  </div>
+                  <a 
+                    href={track.external_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-white transition-colors"
+                  >
+                    Spotify
+                  </a>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
