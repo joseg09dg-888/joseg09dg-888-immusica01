@@ -34,8 +34,28 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { Toaster, toast } from 'sonner';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer, 
+  AreaChart, 
+  Area,
+  BarChart,
+  Bar,
+  Cell
+} from 'recharts';
 import { Artist, Track, RoyaltySummary, User, Branding } from './types';
 import { geminiService } from './services/geminiService';
+
+declare global {
+  interface Window {
+    WidgetCheckout: any;
+  }
+}
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -455,15 +475,25 @@ export default function App() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [royalties, setRoyalties] = useState<RoyaltySummary | null>(null);
   const [branding, setBranding] = useState<Branding | null>(null);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [withholdings, setWithholdings] = useState<any[]>([]);
+  const [statsSummary, setStatsSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(localStorage.getItem('im_music_token'));
   const [currentGlobalTrack, setCurrentGlobalTrack] = useState<any>(null);
 
   useEffect(() => {
-    if (['dashboard', 'catalog', 'marketing', 'royalties', 'marketplace', 'legal', 'financing', 'upload', 'discovery'].includes(activeTab)) {
+    if (['dashboard', 'catalog', 'marketing', 'royalties', 'marketplace', 'legal', 'financing', 'upload', 'discovery', 'payment-status'].includes(activeTab)) {
       setServicesOpen(true);
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    // Check if we are returning from a Wompi payment
+    if (window.location.pathname === '/payment-status' || window.location.search.includes('id=')) {
+      setActiveTab('payment-status');
+    }
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -509,18 +539,24 @@ export default function App() {
         return r.json();
       };
 
-      const [userRes, artistsRes, tracksRes, royaltiesRes, brandingRes] = await Promise.all([
+      const [userRes, artistsRes, tracksRes, royaltiesRes, brandingRes, transactionsRes, withholdingsRes, statsRes] = await Promise.all([
         fetchWithCheck('/api/auth/me'),
         fetchWithCheck('/api/artists'),
         fetchWithCheck('/api/tracks'),
         fetchWithCheck('/api/royalties/summary'),
-        fetchWithCheck('/api/marketing/mi-branding').catch(() => null)
+        fetchWithCheck('/api/marketing/mi-branding').catch(() => null),
+        fetchWithCheck('/api/wompi/history').catch(() => []),
+        fetchWithCheck('/api/royalties/withholdings/my').catch(() => []),
+        fetchWithCheck('/api/stats/summary').catch(() => null)
       ]);
       setUser(userRes);
       setArtists(artistsRes);
       setTracks(tracksRes);
       setRoyalties(royaltiesRes);
       setBranding(brandingRes);
+      setTransactions(transactionsRes);
+      setWithholdings(withholdingsRes);
+      setStatsSummary(statsRes);
     } catch (err: any) {
       console.error("Failed to fetch data", err);
       if (retries > 0 && !err.message.includes("Session expired")) {
@@ -548,7 +584,6 @@ export default function App() {
       localStorage.setItem('im_music_token', data.token);
       setToken(data.token);
     } catch (err: any) {
-      alert("Login failed: " + err.message);
       toast.error("Login failed: " + err.message);
     }
   };
@@ -556,19 +591,25 @@ export default function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardView user={user} artists={artists} tracks={tracks} royalties={royalties} onNavigate={setActiveTab} onPlay={setCurrentGlobalTrack} />;
+        return <DashboardView user={user} artists={artists} tracks={tracks} royalties={royalties} stats={statsSummary} transactions={transactions} onNavigate={setActiveTab} onPlay={setCurrentGlobalTrack} />;
       case 'catalog':
         return <CatalogView tracks={tracks} artists={artists} onAddTrack={() => fetchInitialData()} onAddArtist={() => fetchInitialData()} onNavigate={setActiveTab} onPlay={setCurrentGlobalTrack} />;
+      case 'stats':
+        return <StatsView stats={statsSummary} onUploadSuccess={() => fetchInitialData()} />;
       case 'marketing':
         return <MarketingView artists={artists} branding={branding} onUpdateBranding={() => fetchInitialData()} token={token} />;
       case 'royalties':
-        return <RoyaltiesView royalties={royalties} onUploadSuccess={() => fetchInitialData()} />;
+        return <RoyaltiesView royalties={royalties} transactions={transactions} withholdings={withholdings} stats={statsSummary} onUploadSuccess={() => fetchInitialData()} />;
       case 'legal':
         return <LegalView />;
       case 'financing':
         return <FinancingView />;
       case 'marketplace':
         return <MarketplaceView />;
+      case 'pricing':
+        return <PricingView user={user} />;
+      case 'payment-status':
+        return <PaymentStatusView onNavigate={setActiveTab} />;
       case 'upload':
         return <UploadView onUploadSuccess={() => fetchInitialData()} />;
       case 'discovery':
@@ -659,11 +700,13 @@ export default function App() {
                 >
                   <SidebarItem icon={LayoutDashboard} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setMobileMenuOpen(false); }} />
                   <SidebarItem icon={Music} label="Catalog" active={activeTab === 'catalog'} onClick={() => { setActiveTab('catalog'); setMobileMenuOpen(false); }} />
+                  <SidebarItem icon={BarChart3} label="Analytics" active={activeTab === 'stats'} onClick={() => { setActiveTab('stats'); setMobileMenuOpen(false); }} />
                   <SidebarItem icon={TrendingUp} label="Marketing" active={activeTab === 'marketing'} onClick={() => { setActiveTab('marketing'); setMobileMenuOpen(false); }} />
                   <SidebarItem icon={DollarSign} label="Royalties" active={activeTab === 'royalties'} onClick={() => { setActiveTab('royalties'); setMobileMenuOpen(false); }} />
                   <SidebarItem icon={ShoppingBag} label="Marketplace" active={activeTab === 'marketplace'} onClick={() => { setActiveTab('marketplace'); setMobileMenuOpen(false); }} />
                   <SidebarItem icon={ShieldCheck} label="Legal" active={activeTab === 'legal'} onClick={() => { setActiveTab('legal'); setMobileMenuOpen(false); }} />
                   <SidebarItem icon={CreditCard} label="Financing" active={activeTab === 'financing'} onClick={() => { setActiveTab('financing'); setMobileMenuOpen(false); }} />
+                  <SidebarItem icon={Zap} label="Upgrade" active={activeTab === 'pricing'} onClick={() => { setActiveTab('pricing'); setMobileMenuOpen(false); }} />
                   <SidebarItem icon={Upload} label="Migrar Catálogo" active={activeTab === 'upload'} onClick={() => { setActiveTab('upload'); setMobileMenuOpen(false); }} />
                   <SidebarItem icon={Heart} label="Discovery Mood" active={activeTab === 'discovery'} onClick={() => { setActiveTab('discovery'); setMobileMenuOpen(false); }} />
                 </motion.div>
@@ -805,8 +848,9 @@ export default function App() {
 
 // --- Views ---
 
-function DashboardView({ user, artists, tracks, royalties, onNavigate, onPlay }: any) {
-  const totalStreams = tracks.reduce((acc: number, t: any) => acc + (Math.floor(((t.id * 12345) % 500000) + 10000)), 0);
+function DashboardView({ user, artists, tracks, royalties, stats, transactions, onNavigate, onPlay }: any) {
+  const totalStreams = stats?.totalStreams || tracks.reduce((acc: number, t: any) => acc + (Math.floor(((t.id * 12345) % 500000) + 10000)), 0);
+  const totalRevenue = stats?.totalRevenue || royalties?.total || 0;
   
   return (
     <div className="space-y-6 lg:space-y-10">
@@ -834,7 +878,7 @@ function DashboardView({ user, artists, tracks, royalties, onNavigate, onPlay }:
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard label="Total Streams" value={totalStreams.toLocaleString()} trend="+12.5%" icon={BarChart3} colorClass="text-cyber-cyan" />
-        <StatCard label="Total Revenue" value={`$${royalties?.total?.toLocaleString() || '0'}`} trend="+8.2%" icon={DollarSign} colorClass="text-emerald-400" />
+        <StatCard label="Total Revenue" value={`$${totalRevenue.toLocaleString()}`} trend="+8.2%" icon={DollarSign} colorClass="text-emerald-400" />
         <StatCard label="Active Campaigns" value="4" icon={TrendingUp} colorClass="text-neon-pink" />
         <StatCard label="Active Artists" value={artists.length.toString()} icon={UserIcon} colorClass="text-electric-purple" />
       </div>
@@ -896,6 +940,42 @@ function DashboardView({ user, artists, tracks, royalties, onNavigate, onPlay }:
                   <p className="text-xl font-display font-bold">No tracks found.</p>
                   <p className="text-sm mt-2">Start your rebellion by uploading your first song.</p>
                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* New Recent Transactions Section */}
+          <div className="glass-card p-8">
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="text-2xl font-display font-black tracking-tight flex items-center gap-3">
+                <CreditCard className="text-neon-pink" />
+                Recent Transactions
+              </h3>
+              <button onClick={() => onNavigate('royalties')} className="text-white/40 text-xs font-black uppercase tracking-widest hover:text-white transition-colors flex items-center gap-2">
+                History <ArrowUpRight size={14} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              {transactions.length > 0 ? transactions.slice(0, 3).map((tx: any, i: number) => (
+                <div key={tx.id} className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/5">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.status === 'APPROVED' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-red-400/10 text-red-400'}`}>
+                      <CreditCard size={18} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm">{tx.description}</p>
+                      <p className="text-[10px] text-white/40 uppercase font-black tracking-widest">{tx.date}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`font-black ${tx.status === 'APPROVED' ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {tx.status === 'APPROVED' ? '+' : '-'}${tx.amount}
+                    </p>
+                    <p className="text-[8px] text-white/20 uppercase font-black tracking-tighter">{tx.reference}</p>
+                  </div>
+                </div>
+              )) : (
+                <p className="text-center py-10 text-white/20 text-sm font-medium">No recent transactions.</p>
               )}
             </div>
           </div>
@@ -971,10 +1051,196 @@ function DashboardView({ user, artists, tracks, royalties, onNavigate, onPlay }:
   );
 }
 
+function SplitsManager({ track, onClose }: { track: any, onClose: () => void }) {
+  const [splits, setSplits] = useState<any[]>([]);
+  const [pendingSplits, setPendingSplits] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newSplit, setNewSplit] = useState({ name: '', email: '', percentage: 0, role: 'Collaborator' });
+  const [token] = useState(localStorage.getItem('im_music_token'));
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [accepted, pending] = await Promise.all([
+        safeFetch(`${API_URL}/api/splits/tracks/${track.id}/splits`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        safeFetch(`${API_URL}/api/splits/tracks/${track.id}/splits/pending`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+      setSplits(accepted);
+      setPendingSplits(pending);
+    } catch (err: any) {
+      toast.error("Error fetching splits: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [track.id]);
+
+  const handleCreateSplit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await safeFetch(`${API_URL}/api/splits/tracks/${track.id}/splits`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(newSplit)
+      });
+      toast.success("Split invitation sent!");
+      setNewSplit({ name: '', email: '', percentage: 0, role: 'Collaborator' });
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleDeleteSplit = async (id: number) => {
+    try {
+      await safeFetch(`${API_URL}/api/splits/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      toast.success("Split removed");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const totalPercentage = [...splits, ...pendingSplits].reduce((acc, s) => acc + s.percentage, 0);
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-ink/90 backdrop-blur-xl"
+    >
+      <div className="glass-card p-8 lg:p-12 max-w-4xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar space-y-8">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-3xl font-display font-black tracking-tighter">Manage Splits</h2>
+            <p className="text-white/40 font-medium mt-1">{track.title}</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-all">
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+          <div className="space-y-6">
+            <h3 className="text-xl font-display font-black tracking-tight flex items-center gap-2">
+              <Plus className="text-electric-purple" size={20} />
+              Add Collaborator
+            </h3>
+            <form onSubmit={handleCreateSplit} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40">Name</label>
+                <input 
+                  type="text" 
+                  required
+                  value={newSplit.name}
+                  onChange={e => setNewSplit({...newSplit, name: e.target.value})}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:border-electric-purple outline-none transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40">Email</label>
+                <input 
+                  type="email" 
+                  required
+                  value={newSplit.email}
+                  onChange={e => setNewSplit({...newSplit, email: e.target.value})}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:border-electric-purple outline-none transition-all"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-white/40">Percentage (%)</label>
+                  <input 
+                    type="number" 
+                    required
+                    min="1"
+                    max={100 - totalPercentage}
+                    value={newSplit.percentage}
+                    onChange={e => setNewSplit({...newSplit, percentage: parseFloat(e.target.value)})}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:border-electric-purple outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-white/40">Role</label>
+                  <select 
+                    value={newSplit.role}
+                    onChange={e => setNewSplit({...newSplit, role: e.target.value})}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:border-electric-purple outline-none transition-all"
+                  >
+                    <option value="Collaborator">Collaborator</option>
+                    <option value="Producer">Producer</option>
+                    <option value="Writer">Writer</option>
+                    <option value="Featured Artist">Featured Artist</option>
+                  </select>
+                </div>
+              </div>
+              <button 
+                type="submit"
+                disabled={totalPercentage >= 100}
+                className="w-full bg-electric-purple text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl shadow-electric-purple/20 disabled:opacity-50"
+              >
+                Send Invitation
+              </button>
+            </form>
+          </div>
+
+          <div className="space-y-6">
+            <h3 className="text-xl font-display font-black tracking-tight flex items-center gap-2">
+              <ShieldCheck className="text-emerald-400" size={20} />
+              Current Splits ({totalPercentage}%)
+            </h3>
+            <div className="space-y-4">
+              {loading ? (
+                <div className="py-10 text-center"><Loader className="animate-spin mx-auto text-white/20" /></div>
+              ) : (
+                <>
+                  {[...splits, ...pendingSplits].map((s) => (
+                    <div key={s.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5">
+                      <div>
+                        <p className="font-bold text-sm">{s.artist_name}</p>
+                        <p className="text-[10px] text-white/40 uppercase font-black tracking-widest">{s.role} • {s.status}</p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-lg font-display font-black text-electric-purple">{s.percentage}%</span>
+                        {s.status === 'pending' && (
+                          <button onClick={() => handleDeleteSplit(s.id)} className="text-red-400/40 hover:text-red-400 transition-colors">
+                            <X size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {splits.length === 0 && pendingSplits.length === 0 && (
+                    <p className="text-center py-10 text-white/20 text-sm italic">No splits defined yet.</p>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function CatalogView({ tracks, artists, onAddTrack, onAddArtist, onNavigate, onPlay }: { tracks: Track[], artists: Artist[], onAddTrack: () => void, onAddArtist: () => void, onNavigate: (tab: string) => void, onPlay: (track: any) => void }) {
   const [showAddTrack, setShowAddTrack] = useState(false);
   const [showAddArtist, setShowAddArtist] = useState(false);
   const [showMigrate, setShowMigrate] = useState(false);
+  const [selectedTrackForSplits, setSelectedTrackForSplits] = useState<any>(null);
   const [selectedArtistId, setSelectedArtistId] = useState<number | ''>(artists.length > 0 ? artists[0].id : '');
   const [newTrack, setNewTrack] = useState({ title: '', release_date: '', file_url: '' });
   const [newArtist, setNewArtist] = useState({ name: '', genre: '', bio: '' });
@@ -1072,7 +1338,7 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist, onNavigate, onP
       });
       onAddTrack();
     } catch (err: any) {
-      alert("Error: " + err.message);
+      toast.error("Error: " + err.message);
     }
   };
 
@@ -1096,7 +1362,7 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist, onNavigate, onP
       setShowAddArtist(false);
       onAddArtist();
     } catch (err: any) {
-      alert("Error adding artist: " + err.message);
+      toast.error("Error adding artist: " + err.message);
     }
   };
 
@@ -1109,7 +1375,7 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist, onNavigate, onP
       });
       onAddArtist();
     } catch (err: any) {
-      alert("Error: " + err.message);
+      toast.error("Error: " + err.message);
     }
   };
 
@@ -1284,6 +1550,13 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist, onNavigate, onP
                     >
                       <X size={14} />
                     </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setSelectedTrackForSplits(track); }}
+                      className="p-1 text-white/10 hover:text-electric-purple transition-colors"
+                      title="Manage Splits"
+                    >
+                      <Zap size={14} />
+                    </button>
                     {track.status !== 'distributed' && (
                       <button 
                         onClick={(e) => { e.stopPropagation(); handleDistribute(track.id); }}
@@ -1300,6 +1573,10 @@ function CatalogView({ tracks, artists, onAddTrack, onAddArtist, onNavigate, onP
           ))}
         </div>
       </div>
+
+      {selectedTrackForSplits && (
+        <SplitsManager track={selectedTrackForSplits} onClose={() => setSelectedTrackForSplits(null)} />
+      )}
 
       {/* Modals */}
       <AnimatePresence>
@@ -1522,7 +1799,7 @@ function MarketingView({ artists, branding, onUpdateBranding, token }: { artists
       onUpdateBranding();
       setStep('branding');
     } catch (err: any) {
-      alert("Error: " + err.message);
+      toast.error("Error: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -1537,7 +1814,7 @@ function MarketingView({ artists, branding, onUpdateBranding, token }: { artists
       });
       onUpdateBranding();
     } catch (err: any) {
-      alert("Error: " + err.message);
+      toast.error("Error: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -1552,7 +1829,7 @@ function MarketingView({ artists, branding, onUpdateBranding, token }: { artists
       });
       onUpdateBranding();
     } catch (err: any) {
-      alert("Error: " + err.message);
+      toast.error("Error: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -1567,7 +1844,7 @@ function MarketingView({ artists, branding, onUpdateBranding, token }: { artists
       });
       onUpdateBranding();
     } catch (err: any) {
-      alert("Error: " + err.message);
+      toast.error("Error: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -1857,7 +2134,8 @@ function MarketingView({ artists, branding, onUpdateBranding, token }: { artists
 );
 }
 
-function RoyaltiesView({ royalties, onUploadSuccess }: { royalties: RoyaltySummary | null, onUploadSuccess: () => void }) {
+function RoyaltiesView({ royalties, transactions, withholdings, stats, onUploadSuccess }: { royalties: RoyaltySummary | null, transactions: any[], withholdings: any[], stats: any, onUploadSuccess: () => void }) {
+  const [activeSubTab, setActiveSubTab] = useState<'earnings' | 'wompi' | 'withholdings'>('earnings');
   const [showUpload, setShowUpload] = useState(false);
   const [csvText, setCsvText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -1893,7 +2171,7 @@ function RoyaltiesView({ royalties, onUploadSuccess }: { royalties: RoyaltySumma
       });
       setDetailedRoyalties(updated);
     } catch (err: any) {
-      alert("Error: " + err.message);
+      toast.error("Error: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -1939,80 +2217,184 @@ function RoyaltiesView({ royalties, onUploadSuccess }: { royalties: RoyaltySumma
         </motion.div>
         
         <motion.div whileHover={{ y: -5 }} className="glass-card p-6 lg:p-10">
-          <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Pending Clear</p>
-          <h2 className="text-3xl lg:text-4xl font-display font-black mt-4 tracking-tight">$1,240.50</h2>
-          <p className="mt-4 text-[10px] text-white/20 font-bold uppercase tracking-widest">Expected in 7 days</p>
+          <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Total Streams</p>
+          <h2 className="text-3xl lg:text-4xl font-display font-black mt-4 tracking-tight">{stats?.totalStreams?.toLocaleString() || '0'}</h2>
+          <p className="mt-4 text-[10px] text-white/20 font-bold uppercase tracking-widest">Lifetime Plays</p>
         </motion.div>
 
         <motion.div whileHover={{ y: -5 }} className="glass-card p-6 lg:p-10">
-          <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Next Payout</p>
-          <h2 className="text-3xl lg:text-4xl font-display font-black mt-4 tracking-tight">Mar 15</h2>
-          <p className="mt-4 text-[10px] text-white/20 font-bold uppercase tracking-widest">Monthly Cycle</p>
+          <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Lifetime Revenue</p>
+          <h2 className="text-3xl lg:text-4xl font-display font-black mt-4 tracking-tight">${stats?.totalRevenue?.toLocaleString() || '0'}</h2>
+          <p className="mt-4 text-[10px] text-white/20 font-bold uppercase tracking-widest">Total Earnings</p>
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        <div className="glass-card p-10 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-electric-purple/5 blur-[120px] -mr-48 -mt-48" />
-          <h3 className="text-2xl font-display font-black tracking-tight mb-10 flex items-center gap-3">
-            <BarChart3 className="text-electric-purple" />
-            Revenue Distribution
-          </h3>
-          <div className="space-y-8">
-            {royalties?.byPlatform.map((p: any, i: number) => (
-              <div key={p.platform} className="space-y-3">
-                <div className="flex justify-between items-end">
-                  <div>
-                    <span className="text-sm font-black uppercase tracking-widest text-white/70">{p.platform}</span>
-                    <p className="text-[10px] text-white/20 font-bold uppercase tracking-widest mt-1">Global Streams</p>
-                  </div>
-                  <span className="text-xl font-display font-black tracking-tight">${p.total.toLocaleString()}</span>
-                </div>
-                <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden border border-white/5">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: royalties.total > 0 ? `${(p.total / royalties.total) * 100}%` : '0%' }}
-                    transition={{ delay: i * 0.2, duration: 1, ease: "easeOut" }}
-                    className="h-full bg-gradient-to-r from-electric-purple to-neon-pink shadow-[0_0_15px_rgba(125,60,255,0.3)]"
-                  />
-                </div>
-              </div>
-            )) || (
-              <div className="py-20 text-center text-white/10">
-                <DollarSign size={48} className="mx-auto mb-4 opacity-10" />
-                <p className="font-display font-bold text-xl">No royalty data available yet.</p>
-              </div>
-            )}
-          </div>
-        </div>
+      <div className="flex gap-4 border-b border-white/5 pb-4 overflow-x-auto custom-scrollbar">
+        <button 
+          onClick={() => setActiveSubTab('earnings')}
+          className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'earnings' ? 'bg-white text-ink shadow-xl shadow-white/10' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+        >
+          Earnings Distribution
+        </button>
+        <button 
+          onClick={() => setActiveSubTab('wompi')}
+          className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'wompi' ? 'bg-white text-ink shadow-xl shadow-white/10' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+        >
+          Wompi History
+        </button>
+        <button 
+          onClick={() => setActiveSubTab('withholdings')}
+          className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'withholdings' ? 'bg-white text-ink shadow-xl shadow-white/10' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+        >
+          Withholdings ({withholdings.length})
+        </button>
+      </div>
 
-        <div className="glass-card p-10">
-          <h3 className="text-2xl font-display font-black tracking-tight mb-10 flex items-center gap-3">
-            <FileText className="text-cyber-cyan" />
-            Recent Transactions
-          </h3>
-          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
-            {detailedRoyalties.length > 0 ? detailedRoyalties.map((r, i) => (
-              <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-transparent hover:border-white/10 transition-all group">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-white/20 group-hover:text-white transition-colors">
-                    <Music size={18} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        {activeSubTab === 'earnings' ? (
+          <>
+            <div className="glass-card p-10 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-electric-purple/5 blur-[120px] -mr-48 -mt-48" />
+              <h3 className="text-2xl font-display font-black tracking-tight mb-10 flex items-center gap-3">
+                <BarChart3 className="text-electric-purple" />
+                Revenue Distribution
+              </h3>
+              <div className="space-y-8">
+                {royalties?.byPlatform.map((p: any, i: number) => (
+                  <div key={p.platform} className="space-y-3">
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <span className="text-sm font-black uppercase tracking-widest text-white/70">{p.platform}</span>
+                        <p className="text-[10px] text-white/20 font-bold uppercase tracking-widest mt-1">Global Streams</p>
+                      </div>
+                      <span className="text-xl font-display font-black tracking-tight">${p.total.toLocaleString()}</span>
+                    </div>
+                    <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: royalties.total > 0 ? `${(p.total / royalties.total) * 100}%` : '0%' }}
+                        transition={{ delay: i * 0.2, duration: 1, ease: "easeOut" }}
+                        className="h-full bg-gradient-to-r from-electric-purple to-neon-pink shadow-[0_0_15px_rgba(125,60,255,0.3)]"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-sm">{r.plataforma}</p>
-                    <p className="text-[10px] text-white/20 font-black uppercase tracking-widest mt-1">{r.fecha} • {r.tipo}</p>
+                )) || (
+                  <div className="py-20 text-center text-white/10">
+                    <DollarSign size={48} className="mx-auto mb-4 opacity-10" />
+                    <p className="font-display font-bold text-xl">No royalty data available yet.</p>
                   </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-display font-black text-emerald-400">+${r.cantidad.toFixed(2)}</p>
-                  <p className="text-[8px] text-white/20 font-black uppercase tracking-widest mt-1">{r.estado}</p>
-                </div>
+                )}
               </div>
-            )) : (
-              <p className="text-center text-white/20 py-10">No recent transactions.</p>
-            )}
+            </div>
+
+            <div className="glass-card p-10">
+              <h3 className="text-2xl font-display font-black tracking-tight mb-10 flex items-center gap-3">
+                <FileText className="text-cyber-cyan" />
+                Recent Earnings
+              </h3>
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
+                {detailedRoyalties.length > 0 ? detailedRoyalties.map((r, i) => (
+                  <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-transparent hover:border-white/10 transition-all group">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-white/20 group-hover:text-white transition-colors">
+                        <Music size={18} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm">{r.plataforma}</p>
+                        <p className="text-[10px] text-white/20 font-black uppercase tracking-widest mt-1">{r.fecha} • {r.tipo}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-display font-black text-emerald-400">+${r.cantidad.toFixed(2)}</p>
+                      <p className="text-[8px] text-white/20 font-black uppercase tracking-widest mt-1">{r.estado}</p>
+                    </div>
+                  </div>
+                )) : (
+                  <p className="text-center text-white/20 py-10">No recent earnings.</p>
+                )}
+              </div>
+            </div>
+          </>
+        ) : activeSubTab === 'wompi' ? (
+          <div className="lg:col-span-2 glass-card p-10">
+            <h3 className="text-2xl font-display font-black tracking-tight mb-10 flex items-center gap-3">
+              <CreditCard className="text-neon-pink" />
+              Wompi Transaction History
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/5">
+                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30">Reference</th>
+                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30">Description</th>
+                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30">Date</th>
+                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30">Amount</th>
+                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {transactions.map((tx) => (
+                    <tr key={tx.id} className="group hover:bg-white/5 transition-colors">
+                      <td className="py-4 font-tech text-[10px] text-white/60">{tx.reference}</td>
+                      <td className="py-4 font-bold text-sm">{tx.description}</td>
+                      <td className="py-4 text-xs text-white/40">{tx.date}</td>
+                      <td className="py-4 font-black">${tx.amount}</td>
+                      <td className="py-4 text-right">
+                        <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${tx.status === 'APPROVED' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-red-400/10 text-red-400'}`}>
+                          {tx.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {transactions.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-20 text-center text-white/20 font-medium">No transactions found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="lg:col-span-2 glass-card p-10">
+            <h3 className="text-2xl font-display font-black tracking-tight mb-10 flex items-center gap-3">
+              <ShieldCheck className="text-amber-400" />
+              Royalty Withholdings
+            </h3>
+            <p className="text-white/40 text-sm mb-8 font-medium">Earnings held until collaborators accept their splits.</p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/5">
+                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30">Track</th>
+                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30">Collaborator</th>
+                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30">Amount</th>
+                    <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {withholdings.map((wh) => (
+                    <tr key={wh.id} className="group hover:bg-white/5 transition-colors">
+                      <td className="py-4 font-bold text-sm">{wh.track_title}</td>
+                      <td className="py-4 text-xs text-white/60">{wh.collaborator_name || 'Pending Split'}</td>
+                      <td className="py-4 font-display font-black text-amber-400">${wh.cantidad.toFixed(2)}</td>
+                      <td className="py-4 text-right">
+                        <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${wh.estado === 'released' ? 'bg-emerald-400/10 text-emerald-400' : 'bg-amber-400/10 text-amber-400'}`}>
+                          {wh.estado}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {withholdings.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="py-20 text-center text-white/20 font-medium">No withholdings found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       <AnimatePresence>
@@ -2068,7 +2450,7 @@ function LegalView() {
       setReviewResult(result);
     } catch (err) {
       console.error(err);
-      alert("Error reviewing contract. Please try again.");
+      toast.error("Error reviewing contract. Please try again.");
     } finally {
       setIsReviewing(false);
     }
@@ -2088,7 +2470,7 @@ function LegalView() {
       });
       setConsultationResponse(data.respuesta);
     } catch (err: any) {
-      alert("Error en la consulta: " + err.message);
+      toast.error("Error en la consulta: " + err.message);
     } finally {
       setIsConsulting(false);
     }
@@ -2284,6 +2666,87 @@ function LegalView() {
   );
 }
 
+function PaymentStatusView({ onNavigate }: { onNavigate: (tab: string) => void }) {
+  const [status, setStatus] = useState<'loading' | 'APPROVED' | 'DECLINED' | 'ERROR'>('loading');
+  const [transaction, setTransaction] = useState<any>(null);
+  const [token] = useState(localStorage.getItem('im_music_token'));
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+
+    if (id) {
+      safeFetch(`${API_URL}/api/wompi/transaction/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(data => {
+          setTransaction(data);
+          setStatus(data.status);
+          if (data.status === 'APPROVED') {
+            confetti({
+              particleCount: 150,
+              spread: 70,
+              origin: { y: 0.6 }
+            });
+          }
+        })
+        .catch(() => setStatus('ERROR'));
+    } else {
+      setStatus('ERROR');
+    }
+  }, [token]);
+
+  return (
+    <div className="max-w-2xl mx-auto py-20 text-center space-y-8">
+      {status === 'loading' && (
+        <div className="space-y-4">
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-16 h-16 border-4 border-electric-purple border-t-transparent rounded-full mx-auto" />
+          <h2 className="text-2xl font-display font-black">Verificando Pago...</h2>
+        </div>
+      )}
+
+      {status === 'APPROVED' && (
+        <div className="space-y-6">
+          <div className="w-24 h-24 bg-emerald-400/10 rounded-full flex items-center justify-center text-emerald-400 mx-auto">
+            <ShieldCheck size={48} />
+          </div>
+          <h2 className="text-4xl font-display font-black text-emerald-400">¡Pago Exitoso!</h2>
+          <p className="text-white/40 font-medium">Tu transacción ha sido procesada correctamente. Referencia: {transaction?.reference}</p>
+          <button onClick={() => onNavigate('marketplace')} className="bg-white text-ink px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs">
+            Volver al Marketplace
+          </button>
+        </div>
+      )}
+
+      {status === 'DECLINED' && (
+        <div className="space-y-6">
+          <div className="w-24 h-24 bg-red-400/10 rounded-full flex items-center justify-center text-red-400 mx-auto">
+            <AlertCircle size={48} />
+          </div>
+          <h2 className="text-4xl font-display font-black text-red-400">Pago Rechazado</h2>
+          <p className="text-white/40 font-medium">Lo sentimos, la transacción no pudo ser completada.</p>
+          <button onClick={() => onNavigate('marketplace')} className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs">
+            Intentar de Nuevo
+          </button>
+        </div>
+      )}
+
+      {status === 'ERROR' && (
+        <div className="space-y-6">
+          <div className="w-24 h-24 bg-amber-400/10 rounded-full flex items-center justify-center text-amber-400 mx-auto">
+            <AlertCircle size={48} />
+          </div>
+          <h2 className="text-4xl font-display font-black text-amber-400">Error en el Pago</h2>
+          <p className="text-white/40 font-medium">No pudimos encontrar la información de tu transacción.</p>
+          <button onClick={() => onNavigate('marketplace')} className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs">
+            Volver al Marketplace
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MarketplaceView() {
   const [beats, setBeats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2301,23 +2764,59 @@ function MarketplaceView() {
 
   const handleBuy = async (id: number) => {
     try {
-      await safeFetch(`${API_URL}/api/marketplace/buy`, {
+      const beat = beats.find(b => b.id === id);
+      if (!beat) return;
+
+      // 1. Create a Wompi session on the backend
+      const sessionData = await safeFetch(`${API_URL}/api/wompi/create-session`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ beatId: id })
+        body: JSON.stringify({ 
+          amount: beat.precio / 100,
+          currency: 'COP',
+          reference: `BEAT-${id}-${Date.now()}`
+        })
       });
-      setPurchased([...purchased, id]);
-      confetti({
-        particleCount: 50,
-        spread: 50,
-        origin: { y: 0.8 }
+
+      // 2. Open the Wompi Widget
+      const checkout = new window.WidgetCheckout({
+        currency: sessionData.currency,
+        amountInCents: sessionData.amountInCents,
+        publicKey: sessionData.publicKey,
+        reference: sessionData.reference,
+        signature: sessionData.signature,
+        redirectUrl: sessionData.redirectUrl
       });
-      alert("¡Compra realizada con éxito!");
+
+      checkout.open(async (result: any) => {
+        const transaction = result.transaction;
+        if (transaction.status === 'APPROVED') {
+          // 3. Confirm purchase on backend after successful payment
+          await safeFetch(`${API_URL}/api/marketplace/buy`, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ beatId: id, transactionId: transaction.id })
+          });
+
+          setPurchased([...purchased, id]);
+          confetti({
+            particleCount: 50,
+            spread: 50,
+            origin: { y: 0.8 }
+          });
+          toast.success("¡Compra realizada con éxito!");
+        } else {
+          toast.error(`El pago no fue exitoso: ${transaction.status}`);
+        }
+      });
     } catch (err: any) {
-      alert("Error en la compra: " + err.message);
+      toast.error("Error en el proceso de pago: " + err.message);
     }
   };
 
@@ -2470,7 +2969,7 @@ function FinancingView() {
         });
       }
     } catch (err: any) {
-      alert("Error al verificar elegibilidad: " + err.message);
+      toast.error("Error al verificar elegibilidad: " + err.message);
     } finally {
       setChecking(false);
     }
@@ -2482,10 +2981,10 @@ function FinancingView() {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      alert(data.message);
+      toast.success(data.message);
       if (data.contactUrl) window.open(data.contactUrl, '_blank');
     } catch (err: any) {
-      alert("Error al solicitar adelanto: " + err.message);
+      toast.error("Error al solicitar adelanto: " + err.message);
     }
   };
 
@@ -2613,10 +3112,10 @@ function UploadView({ onUploadSuccess }: { onUploadSuccess: () => void }) {
         body: formData
       });
       setResults(data.results || []);
-      alert(data.message);
+      toast.success(data.message);
       onUploadSuccess();
     } catch (err: any) {
-      alert("Error al subir archivos: " + err.message);
+      toast.error("Error al subir archivos: " + err.message);
     } finally {
       setUploading(false);
     }
@@ -2884,6 +3383,322 @@ function DiscoveryMoodView({ onPlay }: { onPlay: (track: any) => void }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function StatsView({ stats, onUploadSuccess }: { stats: any, onUploadSuccess: () => void }) {
+  const [showUpload, setShowUpload] = useState(false);
+  const [csvText, setCsvText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [token] = useState(localStorage.getItem('im_music_token'));
+
+  const handleUpload = async () => {
+    setLoading(true);
+    try {
+      // In a real app, use FormData for file upload, but here we use text for simplicity as per user request
+      const blob = new Blob([csvText], { type: 'text/csv' });
+      const formData = new FormData();
+      formData.append('file', blob, 'stats.csv');
+
+      await fetch(`${API_URL}/api/stats/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      toast.success('Stats uploaded successfully');
+      onUploadSuccess();
+      setShowUpload(false);
+      setCsvText('');
+    } catch (err: any) {
+      toast.error('Upload failed: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!stats) return (
+    <div className="h-96 flex flex-col items-center justify-center text-white/20 space-y-4">
+      <BarChart3 size={64} className="opacity-10" />
+      <p className="text-xl font-display font-bold">No stats data available.</p>
+      <button onClick={() => setShowUpload(true)} className="text-cyber-cyan hover:underline text-sm font-black uppercase tracking-widest">Upload Stats CSV</button>
+      
+      {showUpload && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-ink/80 backdrop-blur-xl">
+          <div className="glass-card p-10 max-w-2xl w-full space-y-8">
+            <h3 className="text-3xl font-display font-black tracking-tight">Upload Daily Stats</h3>
+            <p className="text-white/40 text-sm">Format: track_id,fecha,plataforma,streams,ingresos</p>
+            <textarea 
+              value={csvText}
+              onChange={e => setCsvText(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 h-64 focus:outline-none focus:border-cyber-cyan transition-all font-mono text-xs"
+              placeholder="1,2026-03-01,Spotify,1500,4.50"
+            />
+            <div className="flex gap-4">
+              <button onClick={() => setShowUpload(false)} className="flex-1 py-4 bg-white/5 rounded-xl font-black uppercase tracking-widest text-xs">Cancel</button>
+              <button onClick={handleUpload} disabled={loading || !csvText} className="flex-1 py-4 bg-cyber-cyan text-ink rounded-xl font-black uppercase tracking-widest text-xs shadow-xl shadow-cyber-cyan/20">
+                {loading ? 'Uploading...' : 'Import Stats'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-10 pb-20">
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-4xl font-display font-black tracking-tighter">Performance Analytics</h1>
+          <p className="text-white/30 mt-2 font-medium">Deep dive into your global streaming data.</p>
+        </div>
+        <button onClick={() => setShowUpload(true)} className="bg-white/5 hover:bg-white/10 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] border border-white/10 transition-all">
+          Upload Daily Stats
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 glass-card p-10 space-y-10">
+          <div className="flex justify-between items-center">
+            <h3 className="text-2xl font-display font-black tracking-tight">Streaming Growth</h3>
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-cyber-cyan" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Streams</span>
+              </div>
+            </div>
+          </div>
+          <div className="h-[400px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={stats.byMonth.reverse()}>
+                <defs>
+                  <linearGradient id="colorStreams" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#00F0FF" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#00F0FF" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis 
+                  dataKey="month" 
+                  stroke="rgba(255,255,255,0.2)" 
+                  fontSize={10} 
+                  tickLine={false} 
+                  axisLine={false}
+                  tickFormatter={(val) => {
+                    const [y, m] = val.split('-');
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    return months[parseInt(m) - 1];
+                  }}
+                />
+                <YAxis stroke="rgba(255,255,255,0.2)" fontSize={10} tickLine={false} axisLine={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                  itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                />
+                <Area type="monotone" dataKey="streams" stroke="#00F0FF" strokeWidth={4} fillOpacity={1} fill="url(#colorStreams)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="glass-card p-10 space-y-10">
+          <h3 className="text-2xl font-display font-black tracking-tight">Platform Share</h3>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats.byPlatform}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="plataforma" stroke="rgba(255,255,255,0.2)" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis stroke="rgba(255,255,255,0.2)" fontSize={10} tickLine={false} axisLine={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#0A0A0A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                />
+                <Bar dataKey="streams" radius={[10, 10, 0, 0]}>
+                  {stats.byPlatform.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#7D3CFF' : '#FF00E5'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="space-y-4">
+            {stats.byPlatform.map((p: any, i: number) => (
+              <div key={i} className="flex justify-between items-center p-4 bg-white/5 rounded-xl border border-white/5">
+                <span className="text-xs font-black uppercase tracking-widest text-white/60">{p.plataforma}</span>
+                <span className="font-display font-black text-cyber-cyan">{p.streams.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="glass-card p-10">
+        <h3 className="text-2xl font-display font-black tracking-tight mb-10 flex items-center gap-3">
+          <TrendingUp className="text-emerald-400" />
+          Recent Daily Stats
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-white/5">
+                <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30">Date</th>
+                <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30">Track</th>
+                <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30">Platform</th>
+                <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30">Streams</th>
+                <th className="pb-4 text-[10px] font-black uppercase tracking-widest text-white/30 text-right">Revenue</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {stats.recent.map((s: any, i: number) => (
+                <tr key={i} className="group hover:bg-white/5 transition-colors">
+                  <td className="py-4 text-xs font-tech text-white/40">{s.fecha}</td>
+                  <td className="py-4 font-bold text-sm">{s.track_title}</td>
+                  <td className="py-4 text-xs font-black uppercase tracking-widest text-white/60">{s.plataforma}</td>
+                  <td className="py-4 font-display font-black text-cyber-cyan">{s.streams.toLocaleString()}</td>
+                  <td className="py-4 text-right font-display font-black text-emerald-400">${s.ingresos.toFixed(4)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {showUpload && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-ink/80 backdrop-blur-xl">
+          <div className="glass-card p-10 max-w-2xl w-full space-y-8">
+            <h3 className="text-3xl font-display font-black tracking-tight">Upload Daily Stats</h3>
+            <p className="text-white/40 text-sm">Format: track_id,fecha,plataforma,streams,ingresos</p>
+            <textarea 
+              value={csvText}
+              onChange={e => setCsvText(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 h-64 focus:outline-none focus:border-cyber-cyan transition-all font-mono text-xs"
+              placeholder="1,2026-03-01,Spotify,1500,4.50"
+            />
+            <div className="flex gap-4">
+              <button onClick={() => setShowUpload(false)} className="flex-1 py-4 bg-white/5 rounded-xl font-black uppercase tracking-widest text-xs">Cancel</button>
+              <button onClick={handleUpload} disabled={loading || !csvText} className="flex-1 py-4 bg-cyber-cyan text-ink rounded-xl font-black uppercase tracking-widest text-xs shadow-xl shadow-cyber-cyan/20">
+                {loading ? 'Uploading...' : 'Import Stats'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PricingView({ user }: { user: User | null }) {
+  const [plans, setPlans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    safeFetch(`${API_URL}/api/wompi/plans`)
+      .then(data => setPlans(data))
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSubscribe = async (plan: any) => {
+    if (plan.price === 0) {
+      toast.info("You are already on the Basic plan.");
+      return;
+    }
+
+    try {
+      const response = await safeFetch(`${API_URL}/api/wompi/create-payment`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('im_music_token')}`
+        },
+        body: JSON.stringify({
+          amount: plan.price,
+          planId: plan.id
+        })
+      });
+
+      const checkout = new window.WidgetCheckout({
+        currency: response.currency,
+        amountInCents: response.amountInCents,
+        reference: response.reference,
+        publicKey: response.publicKey,
+        signature: { integrity: response.signature },
+        redirectUrl: response.redirectUrl
+      });
+
+      checkout.open((result: any) => {
+        const transaction = result.transaction;
+        if (transaction.status === 'APPROVED') {
+          toast.success("Subscription successful!");
+          confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#7D3CFF', '#FF00E5', '#00F0FF']
+          });
+        }
+      });
+    } catch (err: any) {
+      toast.error("Payment failed: " + err.message);
+    }
+  };
+
+  if (loading) return <div className="h-96 flex items-center justify-center"><Loader className="animate-spin text-electric-purple" /></div>;
+
+  return (
+    <div className="space-y-16 pb-20">
+      <div className="text-center space-y-4">
+        <h1 className="text-5xl lg:text-7xl font-display font-black tracking-tighter">Choose Your Rebellion</h1>
+        <p className="text-white/40 text-lg max-w-2xl mx-auto font-medium">Scale your music career with elite tools and global distribution.</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+        {plans.map((plan) => (
+          <motion.div 
+            key={plan.id}
+            whileHover={{ y: -10 }}
+            className={`glass-card p-10 flex flex-col gap-10 relative overflow-hidden group ${plan.id === 'ultimate' ? 'border-electric-purple/40 bg-electric-purple/5' : ''}`}
+          >
+            {plan.id === 'ultimate' && (
+              <div className="absolute top-0 right-0 bg-electric-purple text-white px-6 py-2 rounded-bl-2xl text-[10px] font-black uppercase tracking-widest">Most Popular</div>
+            )}
+            
+            <div className="space-y-2">
+              <h3 className="text-3xl font-display font-black tracking-tight">{plan.name}</h3>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-display font-black">${plan.price}</span>
+                <span className="text-white/30 text-xs font-bold uppercase tracking-widest">/ month</span>
+              </div>
+            </div>
+
+            <div className="space-y-4 flex-1">
+              {plan.features.map((feature: string, i: number) => (
+                <div key={i} className="flex items-center gap-3 text-sm text-white/60">
+                  <Zap size={14} className="text-cyber-cyan" />
+                  <span className="font-medium">{feature}</span>
+                </div>
+              ))}
+            </div>
+
+            <button 
+              onClick={() => handleSubscribe(plan)}
+              className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-xl ${plan.id === 'ultimate' ? 'bg-electric-purple text-white shadow-electric-purple/20' : 'bg-white text-ink shadow-white/10 hover:bg-paper'}`}
+            >
+              {plan.price === 0 ? 'Current Plan' : 'Upgrade Now'}
+            </button>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="glass-card p-12 max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-10 bg-gradient-to-br from-cyber-cyan/10 to-transparent border-cyber-cyan/20">
+        <div className="w-20 h-20 bg-cyber-cyan/10 rounded-3xl flex items-center justify-center text-cyber-cyan shrink-0">
+          <ShieldCheck size={40} />
+        </div>
+        <div className="space-y-2 text-center md:text-left">
+          <h4 className="text-2xl font-display font-black tracking-tight">Secure Payments via Wompi</h4>
+          <p className="text-white/40 font-medium leading-relaxed">Your transactions are protected by industry-leading encryption. We support credit cards, PSE, and more.</p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -75,6 +75,66 @@ db.exec(`
     FOREIGN KEY(track_id) REFERENCES tracks(id) ON DELETE SET NULL
   );
 
+  CREATE TABLE IF NOT EXISTS daily_stats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    track_id INTEGER NOT NULL,
+    fecha TEXT NOT NULL,
+    plataforma TEXT NOT NULL,
+    streams INTEGER DEFAULT 0,
+    ingresos REAL DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(track_id, fecha, plataforma),
+    FOREIGN KEY(track_id) REFERENCES tracks(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS subscriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    plan_name TEXT NOT NULL,
+    status TEXT DEFAULT 'active',
+    reference TEXT UNIQUE,
+    amount REAL,
+    expires_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS splits (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    track_id INTEGER NOT NULL,
+    artist_name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    percentage REAL NOT NULL,
+    role TEXT,
+    status TEXT DEFAULT 'pending',
+    invitation_token TEXT UNIQUE,
+    accepted_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(track_id) REFERENCES tracks(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS split_invitations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    split_id INTEGER NOT NULL,
+    token TEXT UNIQUE NOT NULL,
+    status TEXT DEFAULT 'pending',
+    expires_at DATETIME NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(split_id) REFERENCES splits(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS royalty_withholdings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    track_id INTEGER NOT NULL,
+    split_id INTEGER,
+    cantidad REAL NOT NULL,
+    estado TEXT DEFAULT 'withheld',
+    released_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(track_id) REFERENCES tracks(id) ON DELETE CASCADE,
+    FOREIGN KEY(split_id) REFERENCES splits(id) ON DELETE SET NULL
+  );
+
   CREATE TABLE IF NOT EXISTS artist_branding (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     artist_id INTEGER NOT NULL UNIQUE,

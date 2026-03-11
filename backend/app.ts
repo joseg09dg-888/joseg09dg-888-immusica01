@@ -18,6 +18,9 @@ import marketplaceRoutes from './routes/marketplaceRoutes';
 import financingRoutes from './routes/financingRoutes';
 import bulkUploadRoutes from './routes/bulkUploadRoutes';
 import moodRoutes from './routes/moodRoutes';
+import wompiRoutes from './routes/wompiRoutes';
+import splitRoutes from './routes/splitRoutes';
+import statsRoutes from './routes/statsRoutes';
 import { upload } from './middleware/upload';
 import { authenticate } from './middleware/auth';
 
@@ -53,6 +56,9 @@ async function startServer() {
   app.use('/api/financing', financingRoutes);
   app.use('/api/upload', bulkUploadRoutes);
   app.use('/api/mood', moodRoutes);
+  app.use('/api/wompi', wompiRoutes);
+  app.use('/api/splits', splitRoutes);
+  app.use('/api/stats', statsRoutes);
 
   app.post('/api/upload', authenticate, upload.single('file'), (req: any, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
