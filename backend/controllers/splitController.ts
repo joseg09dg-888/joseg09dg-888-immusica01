@@ -2,9 +2,35 @@ import { Request, Response } from 'express';
 import db from '../config/database';
 import crypto from 'crypto';
 
+interface SplitRequest {
+  name: string;
+  email: string;
+  percentage: number;
+  role: string;
+}
+
+interface SplitRow {
+  id: number;
+  track_id: number;
+  artist_name: string;
+  email: string;
+  percentage: number;
+  role: string;
+  status: string;
+  invitation_token: string;
+}
+
+interface InvitationRow {
+  id: number;
+  split_id: number;
+  token: string;
+  status: string;
+  expires_at: string;
+}
+
 export const createSplit = async (req: Request, res: Response) => {
   const { trackId } = req.params;
-  const { name, email, percentage, role } = req.body;
+  const { name, email, percentage, role } = req.body as SplitRequest;
 
   try {
     // Check total percentage

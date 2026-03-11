@@ -5,12 +5,25 @@ import * as ArtistModel from '../models/Artist';
 import { parse } from 'csv-parse/sync';
 import fs from 'fs';
 
+interface StatsRow {
+  track_id: string;
+  fecha: string;
+  plataforma: string;
+  streams: string;
+  ingresos: string;
+}
+
+interface SummaryTotals {
+  total_streams: number;
+  total_ingresos: number;
+}
+
 export const uploadStats = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
     const fileContent = fs.readFileSync(req.file.path, 'utf-8');
-    const records = parse(fileContent, { columns: true, skip_empty_lines: true });
+    const records = parse(fileContent, { columns: true, skip_empty_lines: true }) as StatsRow[];
     
     fs.unlinkSync(req.file.path);
 

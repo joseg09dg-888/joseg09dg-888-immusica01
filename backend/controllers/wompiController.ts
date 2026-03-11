@@ -15,9 +15,47 @@ const generateIntegritySignature = (reference: string, amountInCents: number, cu
 
 export const getPlans = (req: Request, res: Response) => {
   const plans = [
-    { id: 'basic', name: 'Básico', price: 0, features: ['1 Artista', 'Distribución Estándar', 'Soporte por Email'] },
-    { id: 'plus', name: 'Plus', price: 19.99, features: ['2 Artistas', 'Distribución Rápida', 'Estadísticas Avanzadas', 'Soporte Prioritario'] },
-    { id: 'ultimate', name: 'Ultimate', price: 49.99, features: ['Artistas Ilimitados', 'Distribución Instantánea', 'Marketing con IA', 'Soporte 24/7'] }
+    { 
+      id: 'basic', 
+      name: 'PLAN BÁSICO — DISTRIBUCIÓN', 
+      price: 19.99, 
+      features: [
+        'Distribución digital', 
+        'Gestión de catálogo', 
+        'Reportes básicos', 
+        'Regalías estándar'
+      ] 
+    },
+    { 
+      id: 'pro', 
+      name: 'PLAN PRO — CRECIMIENTO', 
+      price: 149.99, 
+      features: [
+        'Todo lo anterior +', 
+        'Investigación de mercado IA', 
+        'Branding básico', 
+        'Ads automáticos', 
+        'Creativos IA', 
+        'Reporting avanzado'
+      ] 
+    },
+    { 
+      id: 'premium', 
+      name: 'PLAN PREMIUM ELITE — ARTIST DEVELOPMENT 360', 
+      price: 2999.99, 
+      features: [
+        'Todo +', 
+        'Investigación cultural profunda', 
+        'Branding artístico completo', 
+        'Marketing 360 personalizado', 
+        'Optimización continua', 
+        'Asistencia legal prioritaria', 
+        'Financiamiento y estrategia', 
+        'Reporting ejecutivo', 
+        'Desarrollo artístico y management', 
+        'Estrategias VTL'
+      ] 
+    }
   ];
   res.json(plans);
 };
