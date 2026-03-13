@@ -2,18 +2,33 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 import { 
   LayoutDashboard, Zap, BarChart3, Users, LogOut, LogIn, 
   ShieldCheck, DollarSign, Database, Menu, X, ChevronDown,
-  Palette, ShoppingBag, Rocket, Scale, Globe, Music, Facebook
+  Palette, ShoppingBag, Rocket, Scale, Globe, Music, Facebook, Wallet,
+  Languages
 } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const { isAuthenticated, login, logout, user } = useAuth();
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+
+  const languages = [
+    { code: 'en', label: 'English' },
+    { code: 'es', label: 'Español' },
+    { code: 'pt', label: 'Português' },
+    { code: 'fr', label: 'Français' }
+  ];
+
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
+    setActiveDropdown(null);
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -25,13 +40,15 @@ const Navbar: React.FC = () => {
     {
       label: 'Core',
       items: [
-        { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-        { label: 'Stats', path: '/stats', icon: BarChart3, protected: true },
-        { label: 'Splits', path: '/splits', icon: Users, protected: true },
+        { label: t('nav.dashboard'), path: '/dashboard', icon: LayoutDashboard },
+        { label: t('nav.catalog'), path: '/catalog', icon: Music, protected: true },
+        { label: t('nav.stats'), path: '/stats', icon: BarChart3, protected: true },
+        { label: t('nav.splits'), path: '/splits', icon: Users, protected: true },
+        { label: t('nav.wallet'), path: '/wallet', icon: Wallet, protected: true },
       ]
     },
     {
-      label: 'Services',
+      label: t('nav.services'),
       items: [
         { label: 'Marketing', path: '/marketing', icon: Zap, protected: true },
         { label: 'Facebook Ads', path: '/facebook-ads', icon: Facebook, protected: true },
@@ -84,9 +101,9 @@ const Navbar: React.FC = () => {
               );
             })}
 
-            {/* Services Dropdown */}
+            {/* Services Mega Menu */}
             {isAuthenticated && (
-              <div className="relative" onMouseEnter={() => setActiveDropdown('services')} onMouseLeave={() => setActiveDropdown(null)}>
+              <div className="relative group/mega" onMouseEnter={() => setActiveDropdown('services')} onMouseLeave={() => setActiveDropdown(null)}>
                 <button
                   className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
                     navGroups[1].items.some(i => isActive(i.path))
@@ -94,7 +111,7 @@ const Navbar: React.FC = () => {
                       : 'text-white/40 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  Services
+                  {t('nav.services')}
                   <ChevronDown size={12} className={`transition-transform duration-300 ${activeDropdown === 'services' ? 'rotate-180' : ''}`} />
                 </button>
 
@@ -104,28 +121,50 @@ const Navbar: React.FC = () => {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute top-full right-0 mt-4 w-64 glass-card p-4 border-white/10 shadow-2xl"
+                      className="absolute top-full -right-48 mt-4 w-[600px] glass-card p-8 border-white/10 shadow-2xl overflow-hidden"
                     >
-                      <div className="grid gap-2">
+                      {/* Decorative Background */}
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-cyber-cyan/5 blur-[80px] rounded-full -mr-32 -mt-32" />
+                      
+                      <div className="relative z-10 grid grid-cols-2 gap-4">
                         {navGroups[1].items.map((item) => (
                           <Link
                             key={item.path}
                             to={item.path}
                             onClick={() => setActiveDropdown(null)}
-                            className={`p-4 rounded-xl flex items-center gap-4 transition-all ${
+                            className={`group/item p-6 rounded-2xl flex items-start gap-6 transition-all border border-transparent ${
                               isActive(item.path)
-                                ? 'bg-cyber-cyan/10 text-cyber-cyan'
-                                : 'hover:bg-white/5 text-white/60 hover:text-white'
+                                ? 'bg-cyber-cyan/10 border-cyber-cyan/20 text-cyber-cyan'
+                                : 'hover:bg-white/5 hover:border-white/10 text-white/60 hover:text-white'
                             }`}
                           >
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                              isActive(item.path) ? 'bg-cyber-cyan text-ink' : 'bg-white/5'
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+                              isActive(item.path) 
+                                ? 'bg-cyber-cyan text-ink shadow-lg shadow-cyber-cyan/20' 
+                                : 'bg-white/5 group-hover/item:bg-white/10'
                             }`}>
-                              <item.icon size={16} />
+                              <item.icon size={20} className="group-hover/item:scale-110 transition-transform" />
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest">{item.label}</span>
+                            <div className="space-y-1">
+                              <span className="text-xs font-black uppercase tracking-widest block">{item.label}</span>
+                              <p className="text-[10px] text-white/20 font-medium leading-tight">
+                                {item.label === 'Marketing' && 'AI Branding & Content Strategy'}
+                                {item.label === 'Facebook Ads' && 'Neural Campaign Management'}
+                                {item.label === 'Marketplace' && 'Exclusive Beats & Licenses'}
+                                {item.label === 'Migration' && 'Bulk Catalog AI Processing'}
+                                {item.label === 'Financing' && 'Data-Driven Royalty Advances'}
+                                {item.label === 'Legal' && 'AI Contract & Dispute Agent'}
+                              </p>
+                            </div>
                           </Link>
                         ))}
+                      </div>
+                      
+                      <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/20">All systems operational</p>
+                        <Link to="/dashboard" className="text-[10px] font-black uppercase tracking-widest text-cyber-cyan hover:text-white transition-colors">
+                          View Dashboard →
+                        </Link>
                       </div>
                     </motion.div>
                   )}
@@ -142,12 +181,44 @@ const Navbar: React.FC = () => {
               }`}
             >
               <Zap size={14} />
-              Planes
+              {t('nav.plans')}
             </Link>
           </div>
 
-          {/* Auth Actions */}
-          <div className="hidden lg:flex items-center gap-4">
+          {/* Right Section: Language + Auth */}
+          <div className="hidden lg:flex items-center gap-6">
+            {/* Language Switcher */}
+            <div className="relative" onMouseEnter={() => setActiveDropdown('lang')} onMouseLeave={() => setActiveDropdown(null)}>
+              <button className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all text-white/40 hover:text-white">
+                <Languages size={18} />
+              </button>
+              
+              <AnimatePresence>
+                {activeDropdown === 'lang' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute top-full right-0 mt-4 w-48 glass-card p-2 border-white/10 shadow-2xl"
+                  >
+                    {languages.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => changeLanguage(lang.code)}
+                        className={`w-full px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-left transition-all ${
+                          i18n.language === lang.code 
+                            ? 'bg-cyber-cyan text-ink' 
+                            : 'text-white/40 hover:text-white hover:bg-white/5'
+                        }`}
+                      >
+                        {lang.label}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             {isAuthenticated ? (
               <div className="flex items-center gap-4">
                 <div className="text-right">
@@ -166,7 +237,7 @@ const Navbar: React.FC = () => {
                 onClick={login}
                 className="px-8 py-3 bg-white text-ink rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-white/10"
               >
-                Connect Spotify
+                {t('nav.connect')}
               </button>
             )}
           </div>
@@ -205,6 +276,23 @@ const Navbar: React.FC = () => {
               </div>
 
               <div className="flex-1 space-y-8 overflow-y-auto">
+                {/* Language Switcher Mobile */}
+                <div className="flex gap-2 p-2 bg-white/5 rounded-2xl border border-white/10">
+                  {languages.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => changeLanguage(lang.code)}
+                      className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                        i18n.language === lang.code 
+                          ? 'bg-cyber-cyan text-ink' 
+                          : 'text-white/40'
+                      }`}
+                    >
+                      {lang.code.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+
                 {navGroups.map((group) => (
                   <div key={group.label} className="space-y-4">
                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 px-4">{group.label}</h3>
@@ -243,7 +331,7 @@ const Navbar: React.FC = () => {
                     }`}
                   >
                     <Zap size={24} />
-                    <span className="text-xl font-display font-black uppercase tracking-tight">Planes</span>
+                    <span className="text-xl font-display font-black uppercase tracking-tight">{t('nav.plans')}</span>
                   </Link>
                 </div>
               </div>
@@ -255,14 +343,14 @@ const Navbar: React.FC = () => {
                     className="w-full p-6 bg-neon-pink/10 text-neon-pink rounded-2xl flex items-center justify-center gap-4 font-black uppercase tracking-widest text-xs"
                   >
                     <LogOut size={20} />
-                    Disconnect Account
+                    {t('nav.disconnect')}
                   </button>
                 ) : (
                   <button
                     onClick={() => { login(); setIsOpen(false); }}
                     className="w-full p-6 bg-white text-ink rounded-2xl font-black uppercase tracking-widest text-xs"
                   >
-                    Connect Spotify
+                    {t('nav.connect')}
                   </button>
                 )}
               </div>

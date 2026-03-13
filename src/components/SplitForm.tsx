@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createSplit, getTracks } from '../services/api';
 import { motion } from 'motion/react';
-import { Users, Mail, Percent, Music, UserPlus, Loader2, CheckCircle2 } from 'lucide-react';
+import { Users, Mail, Percent, Music, UserPlus, Loader2, CheckCircle2, Sparkles, Zap, ArrowRight, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Track {
@@ -21,7 +21,7 @@ const SplitForm: React.FC = () => {
   useEffect(() => {
     getTracks()
       .then(res => setTracks(res.data))
-      .catch(err => console.error('Error al cargar tracks:', err));
+      .catch(err => console.error('Error loading tracks:', err));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,142 +31,149 @@ const SplitForm: React.FC = () => {
     setLoading(true);
     try {
       const res = await createSplit(Number(trackId), { name, email, percentage: Number(percentage), role });
-      toast.success('Invitación enviada con éxito');
+      toast.success('Split invitation sent successfully!');
       // Reset form
       setName('');
       setEmail('');
       setPercentage('');
       setRole('');
     } catch (err: any) {
-      toast.error('Error: ' + (err.response?.data?.error || 'Error desconocido'));
+      toast.error('Error: ' + (err.response?.data?.error || 'Unknown error'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen pt-32 pb-20 px-6">
-      <div className="max-w-4xl mx-auto space-y-12">
-        <div className="text-center space-y-4">
-          <h1 className="text-5xl lg:text-7xl font-display font-black tracking-tighter uppercase leading-none">
-            Royalty <br />
-            <span className="text-electric-purple">Splits</span>
-          </h1>
-          <p className="text-white/40 font-medium tracking-wide max-w-xl mx-auto">
-            Automate your royalty distribution with collaborators. Invite them via email and manage percentages securely.
-          </p>
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-10 lg:p-16"
-        >
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-6 md:col-span-2">
-              <div className="flex items-center gap-3 text-cyber-cyan">
-                <Music size={20} />
-                <h3 className="text-xs font-black uppercase tracking-[0.2em]">Track Information</h3>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3 }}
+      className="glass-card p-12 lg:p-20 border-white/5 bg-white/[0.02] relative overflow-hidden"
+    >
+      <div className="absolute top-0 right-0 w-64 h-64 bg-electric-purple/5 blur-[60px] rounded-full -mr-32 -mt-32" />
+      
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-16 relative z-10">
+            <div className="space-y-10 lg:col-span-2">
+              <div className="flex items-center gap-4 text-cyber-cyan">
+                <div className="w-10 h-10 rounded-xl bg-cyber-cyan/10 flex items-center justify-center">
+                  <Music size={20} />
+                </div>
+                <h3 className="text-sm font-black uppercase tracking-[0.2em]">Track Architecture</h3>
               </div>
-              <div className="relative">
+              <div className="relative group">
                 <select 
                   value={trackId} 
                   onChange={e => setTrackId(Number(e.target.value))} 
                   required
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 focus:outline-none focus:border-cyber-cyan transition-all appearance-none text-sm font-bold"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-8 py-6 focus:outline-none focus:border-cyber-cyan/40 focus:bg-white/10 transition-all appearance-none text-sm font-black uppercase tracking-tight italic"
                 >
-                  <option value="" className="bg-ink">Selecciona una canción</option>
+                  <option value="" className="bg-ink">Select Neural Track</option>
                   {tracks.map(t => (
                     <option key={t.id} value={t.id} className="bg-ink">{t.title}</option>
                   ))}
                 </select>
-                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-white/20">
-                  <Music size={16} />
+                <div className="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none text-white/20 group-hover:text-cyber-cyan transition-colors">
+                  <Music size={20} />
                 </div>
               </div>
             </div>
 
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 text-electric-purple">
-                <UserPlus size={20} />
-                <h3 className="text-xs font-black uppercase tracking-[0.2em]">Collaborator</h3>
+            <div className="space-y-10">
+              <div className="flex items-center gap-4 text-electric-purple">
+                <div className="w-10 h-10 rounded-xl bg-electric-purple/10 flex items-center justify-center">
+                  <UserPlus size={20} />
+                </div>
+                <h3 className="text-sm font-black uppercase tracking-[0.2em]">Collaborator Identity</h3>
               </div>
-              <div className="space-y-4">
-                <div className="relative">
+              <div className="space-y-6">
+                <div className="relative group">
                   <input 
                     type="text" 
-                    placeholder="Nombre del colaborador"
+                    placeholder="Collaborator Name"
                     value={name} 
                     onChange={e => setName(e.target.value)} 
                     required 
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-12 py-5 focus:outline-none focus:border-electric-purple transition-all text-sm font-bold placeholder:text-white/20"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-8 py-6 focus:outline-none focus:border-electric-purple/40 focus:bg-white/10 transition-all text-sm font-bold placeholder:text-white/20"
                   />
-                  <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={18} />
+                  <Users className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-hover:text-electric-purple transition-colors" size={20} />
                 </div>
-                <div className="relative">
+                <div className="relative group">
                   <input 
                     type="email" 
-                    placeholder="Email"
+                    placeholder="Neural Email Address"
                     value={email} 
                     onChange={e => setEmail(e.target.value)} 
                     required 
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-12 py-5 focus:outline-none focus:border-electric-purple transition-all text-sm font-bold placeholder:text-white/20"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-8 py-6 focus:outline-none focus:border-electric-purple/40 focus:bg-white/10 transition-all text-sm font-bold placeholder:text-white/20"
                   />
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={18} />
+                  <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-hover:text-electric-purple transition-colors" size={20} />
                 </div>
               </div>
             </div>
 
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 text-neon-pink">
-                <Percent size={20} />
-                <h3 className="text-xs font-black uppercase tracking-[0.2em]">Split Details</h3>
+            <div className="space-y-10">
+              <div className="flex items-center gap-4 text-neon-pink">
+                <div className="w-10 h-10 rounded-xl bg-neon-pink/10 flex items-center justify-center">
+                  <Percent size={20} />
+                </div>
+                <h3 className="text-sm font-black uppercase tracking-[0.2em]">Split Configuration</h3>
               </div>
-              <div className="space-y-4">
-                <div className="relative">
+              <div className="space-y-6">
+                <div className="relative group">
                   <input 
                     type="number" 
                     step="0.1" 
                     min="0.1" 
                     max="100" 
-                    placeholder="Porcentaje (%)"
+                    placeholder="Percentage Share (%)"
                     value={percentage} 
                     onChange={e => setPercentage(e.target.value)} 
                     required 
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-12 py-5 focus:outline-none focus:border-neon-pink transition-all text-sm font-bold placeholder:text-white/20"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-8 py-6 focus:outline-none focus:border-neon-pink/40 focus:bg-white/10 transition-all text-sm font-bold placeholder:text-white/20"
                   />
-                  <Percent className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={18} />
+                  <Percent className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-hover:text-neon-pink transition-colors" size={20} />
                 </div>
-                <div className="relative">
+                <div className="relative group">
                   <input 
                     type="text" 
-                    placeholder="Rol (ej. Producer, Vocalist)"
+                    placeholder="Role (e.g. Lead Producer, Vocalist)"
                     value={role} 
                     onChange={e => setRole(e.target.value)} 
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-12 py-5 focus:outline-none focus:border-neon-pink transition-all text-sm font-bold placeholder:text-white/20"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl pl-14 pr-8 py-6 focus:outline-none focus:border-neon-pink/40 focus:bg-white/10 transition-all text-sm font-bold placeholder:text-white/20"
                   />
-                  <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={18} />
+                  <Users className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-hover:text-neon-pink transition-colors" size={20} />
                 </div>
               </div>
             </div>
 
-            <div className="md:col-span-2 pt-8">
+            <div className="lg:col-span-2 pt-12">
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full py-6 bg-electric-purple text-white rounded-2xl font-black uppercase tracking-[0.3em] text-xs shadow-2xl shadow-electric-purple/20 hover:shadow-electric-purple/40 hover:scale-[1.02] transition-all flex items-center justify-center gap-3"
+                className="w-full py-8 bg-electric-purple text-white rounded-[2rem] font-black uppercase tracking-[0.4em] text-[10px] shadow-2xl shadow-electric-purple/20 hover:shadow-electric-purple/40 hover:scale-[1.02] transition-all flex items-center justify-center gap-4 relative overflow-hidden group/btn"
               >
-                {loading ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />}
-                <span>{loading ? 'Enviando...' : 'Enviar Invitación de Split'}</span>
+                <div className="absolute inset-0 bg-white translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500 ease-out" />
+                <span className="relative z-10 flex items-center gap-4">
+                  {loading ? <Loader2 className="animate-spin" size={20} /> : <Zap size={20} />}
+                  <span>{loading ? 'Processing Neural Split...' : 'Initialize Royalty Split'}</span>
+                </span>
               </button>
-              <p className="text-center mt-6 text-[10px] text-white/20 font-bold uppercase tracking-widest">
-                Funds will be withheld until the collaborator accepts the invitation.
-              </p>
+              
+              <div className="mt-10 p-8 bg-white/[0.02] rounded-[32px] border border-white/5 flex items-center gap-6">
+                <div className="w-12 h-12 bg-cyber-cyan/10 rounded-full flex items-center justify-center text-cyber-cyan shrink-0">
+                  <ShieldCheck size={24} />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-black uppercase tracking-tight italic">Security Protocol</p>
+                  <p className="text-xs text-white/40 leading-relaxed">
+                    Funds will be withheld in the <span className="text-white font-bold">Neural Escrow</span> until the collaborator accepts the invitation.
+                  </p>
+                </div>
+              </div>
             </div>
           </form>
         </motion.div>
-      </div>
-    </div>
   );
 };
 

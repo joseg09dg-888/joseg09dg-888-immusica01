@@ -14,6 +14,8 @@ import Marketplace from './pages/Marketplace';
 import CatalogMigration from './pages/CatalogMigration';
 import Financing from './pages/Financing';
 import FacebookAds from './pages/FacebookAds';
+import Catalog from './pages/Catalog';
+import Wallet from './pages/Wallet';
 import { Toaster } from 'sonner';
 
 function App() {
@@ -35,6 +37,8 @@ function App() {
           <Route path="/migration" element={<CatalogMigration />} />
           <Route path="/financing" element={<Financing />} />
           <Route path="/facebook-ads" element={<FacebookAds />} />
+          <Route path="/catalog" element={<Catalog />} />
+          <Route path="/wallet" element={<Wallet />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

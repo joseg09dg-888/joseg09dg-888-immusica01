@@ -1,11 +1,12 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Zap, ShieldCheck, CheckCircle2, MessageCircle } from 'lucide-react';
+import { Zap, ShieldCheck, CheckCircle2, MessageCircle, Rocket } from 'lucide-react';
 
 interface Plan {
   id: string;
   name: string;
-  price: number;
+  priceYearly: number | null;
+  priceMonthly: number | null;
   description: string;
   features: string[];
   isContactRequired?: boolean;
@@ -13,55 +14,83 @@ interface Plan {
 
 interface Props {
   plan: Plan;
-  onSelect: (plan: Plan) => void;
+  billingCycle: 'monthly' | 'yearly';
+  index: number;
 }
 
-const PlanCard: React.FC<Props> = ({ plan, onSelect }) => {
+const PlanCard: React.FC<Props> = ({ plan, billingCycle, index }) => {
   const isPremium = plan.id === 'premium';
   const whatsappNumber = '573001234567'; // Cambia por tu número
 
   const handleClick = () => {
-    if (isPremium) {
-      const message = encodeURIComponent('Hola, quiero información sobre el plan Premium Elite.');
+    if (isPremium || plan.isContactRequired) {
+      const message = encodeURIComponent(`Hola, quiero información sobre el plan ${plan.name}.`);
       window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
     } else {
-      onSelect(plan);
+      // Logic for payment or selection
+      console.log('Selected plan:', plan.id);
     }
   };
 
-  const getPriceRange = () => {
-    if (plan.id === 'basic') return 'USD 15–25';
-    if (plan.id === 'pro') return 'USD 99–199';
-    return 'USD 2.000–4.000';
-  };
+  const currentPrice = billingCycle === 'yearly' ? plan.priceYearly : plan.priceMonthly;
 
   return (
     <motion.div 
-      whileHover={{ y: -10 }}
-      className={`glass-card p-10 flex flex-col gap-10 relative overflow-hidden group ${isPremium ? 'border-electric-purple/40 bg-electric-purple/5' : ''}`}
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.8, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -10, scale: 1.02 }}
+      className={`glass-card p-10 flex flex-col gap-10 relative overflow-hidden group border-white/5 ${isPremium ? 'border-cyber-cyan/40 bg-cyber-cyan/5' : ''}`}
     >
+      {/* Animated Background Glow */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${isPremium ? 'from-cyber-cyan/10 to-transparent' : 'from-white/5 to-transparent'} opacity-0 group-hover:opacity-100 transition-opacity duration-700`} />
+      
       {isPremium && (
-        <div className="absolute top-0 right-0 bg-electric-purple text-white px-6 py-2 rounded-bl-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-electric-purple/20">
-          Elite Development
+        <div className="absolute top-0 right-0 bg-cyber-cyan text-ink px-6 py-2 rounded-bl-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-cyber-cyan/20 z-20">
+          Elite Rebellion
         </div>
       )}
       
-      <div className="space-y-4">
-        <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-electric-purple group-hover:scale-110 transition-transform">
-          {isPremium ? <ShieldCheck size={24} /> : <Zap size={24} />}
+      <div className="space-y-6 relative z-10">
+        <div className={`w-16 h-16 rounded-3xl flex items-center justify-center transition-all duration-500 ${
+          isPremium ? 'bg-cyber-cyan text-ink shadow-2xl shadow-cyber-cyan/20' : 'bg-white/5 text-white/40 group-hover:bg-white/10 group-hover:text-white'
+        }`}>
+          {isPremium ? <ShieldCheck size={32} /> : <Zap size={32} />}
         </div>
-        <h3 className="text-2xl font-display font-black tracking-tight leading-tight uppercase">{plan.name}</h3>
-        <div className="flex items-baseline gap-1">
-          <span className="text-3xl font-display font-black text-white">{getPriceRange()}</span>
-          <span className="text-white/30 text-[10px] font-bold uppercase tracking-widest">/ mes</span>
+        
+        <div className="space-y-2">
+          <h3 className="text-4xl font-display font-black tracking-tighter leading-none uppercase italic group-hover:text-cyber-cyan transition-colors">
+            {plan.name}
+          </h3>
+          <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em]">{plan.description}</p>
         </div>
-        <p className="text-white/40 text-xs font-medium leading-relaxed">{plan.description || 'Scale your music career with elite tools.'}</p>
+
+        <div className="flex items-baseline gap-2">
+          {currentPrice !== null ? (
+            <>
+              <span className="text-5xl lg:text-6xl font-display font-black text-white tracking-tighter italic">
+                ${currentPrice}
+              </span>
+              <span className="text-white/20 text-[10px] font-black uppercase tracking-widest">
+                / {billingCycle === 'yearly' ? 'year' : 'month'}
+              </span>
+            </>
+          ) : (
+            <span className="text-4xl font-display font-black text-white tracking-tighter italic uppercase">
+              Contact Us
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="space-y-4 flex-1">
+      <div className="space-y-4 flex-1 relative z-10">
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-6">Neural Features</p>
         {plan.features.map((feature: string, i: number) => (
-          <div key={i} className="flex items-start gap-3 text-xs text-white/60 group-hover:text-white/80 transition-colors">
-            <CheckCircle2 size={14} className="text-cyber-cyan mt-0.5 shrink-0" />
+          <div key={i} className="flex items-start gap-4 text-xs text-white/40 group-hover:text-white/80 transition-colors">
+            <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center shrink-0 group-hover:bg-cyber-cyan/20 group-hover:text-cyber-cyan transition-colors">
+              <CheckCircle2 size={12} />
+            </div>
             <span className="font-medium leading-relaxed">{feature}</span>
           </div>
         ))}
@@ -69,17 +98,34 @@ const PlanCard: React.FC<Props> = ({ plan, onSelect }) => {
 
       <button 
         onClick={handleClick}
-        className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-xl flex items-center justify-center gap-2 ${isPremium ? 'bg-electric-purple text-white shadow-electric-purple/20 hover:shadow-electric-purple/40' : 'bg-white text-ink shadow-white/10 hover:bg-paper'}`}
+        className={`w-full py-6 rounded-2xl font-black uppercase tracking-[0.4em] text-[10px] transition-all shadow-2xl flex items-center justify-center gap-4 relative z-10 overflow-hidden group/btn ${
+          isPremium 
+            ? 'bg-cyber-cyan text-ink shadow-cyber-cyan/20 hover:shadow-cyber-cyan/40' 
+            : 'bg-white/5 text-white border border-white/10 hover:bg-white hover:text-ink shadow-white/0 hover:shadow-white/10'
+        }`}
       >
-        {isPremium ? (
-          <>
-            <MessageCircle size={16} />
-            <span>Contactar WhatsApp</span>
-          </>
-        ) : (
-          <span>Upgrade Now</span>
-        )}
+        <div className="absolute inset-0 bg-white translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500 ease-out" />
+        <span className="relative z-10 flex items-center gap-4">
+          {isPremium ? (
+            <>
+              <MessageCircle size={18} />
+              <span>Contact HQ</span>
+            </>
+          ) : (
+            <>
+              <Rocket size={18} />
+              <span>Initialize Upgrade</span>
+            </>
+          )}
+        </span>
       </button>
+
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 right-0 w-48 h-48 bg-cyber-cyan/5 blur-[60px] rounded-full -mr-24 -mt-24 group-hover:bg-cyber-cyan/10 transition-colors duration-1000" />
+      <div className="absolute bottom-0 left-0 w-48 h-48 bg-neon-pink/5 blur-[60px] rounded-full -ml-24 -mb-24 group-hover:bg-neon-pink/10 transition-colors duration-1000" />
+      
+      {/* Scanline Effect */}
+      <div className="absolute inset-0 bg-scanline opacity-[0.02] pointer-events-none" />
     </motion.div>
   );
 };
