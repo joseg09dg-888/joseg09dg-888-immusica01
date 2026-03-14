@@ -1,8 +1,10 @@
 import React from 'react';
 import PlansList from '../components/PlansList';
 import { motion } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 
 const Plans: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen pt-32 pb-20 px-6">
       <div className="max-w-7xl mx-auto space-y-24">
@@ -15,12 +17,11 @@ const Plans: React.FC = () => {
             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
             className="space-y-6 relative z-10"
           >
-            <h1 className="text-6xl lg:text-[10vw] font-display font-black tracking-tighter uppercase leading-[0.85] italic">
-              Choose Your <br />
-              <span className="text-white outline-text-thick">Rebellion</span>
+            <h1 className="text-3xl sm:text-6xl lg:text-[10vw] font-display font-black tracking-tighter uppercase leading-[0.85] italic">
+              {t('choose_rebellion')}
             </h1>
             <p className="text-white/60 text-xl max-w-2xl mx-auto font-medium leading-relaxed">
-              Scale your music career with elite neural tools and global distribution infrastructure.
+              {t('plans_desc')}
             </p>
           </motion.div>
         </div>

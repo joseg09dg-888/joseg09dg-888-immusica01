@@ -27,10 +27,12 @@ const SplitsList: React.FC = () => {
         getSplits(),
         getPendingSplits()
       ]);
-      setSplits(splitsRes.data);
-      setPendingSplits(pendingRes.data);
+      setSplits(Array.isArray(splitsRes.data) ? splitsRes.data : []);
+      setPendingSplits(Array.isArray(pendingRes.data) ? pendingRes.data : []);
     } catch (err) {
       console.error(err);
+      setSplits([]);
+      setPendingSplits([]);
     } finally {
       setLoading(false);
     }
@@ -80,7 +82,7 @@ const SplitsList: React.FC = () => {
   return (
     <div className="space-y-16">
       {/* Pending Invitations */}
-      {pendingSplits.length > 0 && (
+      {Array.isArray(pendingSplits) && pendingSplits.length > 0 && (
         <div className="space-y-8">
           <div className="flex items-center gap-4 text-amber-400">
             <div className="w-10 h-10 rounded-xl bg-amber-400/10 flex items-center justify-center">
@@ -90,7 +92,7 @@ const SplitsList: React.FC = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {pendingSplits.map((split, i) => (
+            {Array.isArray(pendingSplits) && pendingSplits.map((split, i) => (
               <motion.div
                 key={split.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -157,7 +159,7 @@ const SplitsList: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {splits.length === 0 ? (
+                {!Array.isArray(splits) || splits.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-10 py-20 text-center text-[10px] font-black uppercase tracking-[0.4em] text-white/10 italic">
                       No active neural splits found

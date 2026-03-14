@@ -4,7 +4,6 @@ import { motion } from 'motion/react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { TrendingUp, DollarSign, Play, Globe, Upload, Loader2, CheckCircle2, ShieldAlert, Lock, Unlock, Sparkles, Zap, Activity, ArrowUpRight } from 'lucide-react';
 import { toast } from 'sonner';
-import MoodDiscovery from './MoodDiscovery';
 
 interface Summary {
   total_streams: number;
@@ -219,8 +218,6 @@ const StatsDashboard: React.FC = () => {
               </ResponsiveContainer>
             </div>
           </motion.div>
-
-          <MoodDiscovery />
         </div>
 
         {/* Withholdings & Platform Distribution */}

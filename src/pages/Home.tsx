@@ -47,16 +47,16 @@ const Home: React.FC = () => {
             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
             className="space-y-16"
           >
-            <div className="flex items-center justify-center gap-6">
-              <span className="h-px w-24 bg-gradient-to-r from-transparent via-cyber-cyan/50 to-transparent" />
-              <span className="text-[10px] font-black uppercase tracking-[1em] text-cyber-cyan animate-pulse text-glow-cyan">Neural Infrastructure v2.0</span>
-              <span className="h-px w-24 bg-gradient-to-l from-transparent via-cyber-cyan/50 to-transparent" />
+            <div className="flex items-center justify-center gap-3 sm:gap-6">
+              <span className="hidden sm:block h-px w-24 bg-gradient-to-r from-transparent via-cyber-cyan/50 to-transparent" />
+              <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-[0.3em] sm:tracking-[1em] text-cyber-cyan animate-pulse text-glow-cyan text-center">Neural Infrastructure v2.0</span>
+              <span className="hidden sm:block h-px w-24 bg-gradient-to-l from-transparent via-cyber-cyan/50 to-transparent" />
             </div>
             
             <div className="relative perspective-1000">
               <motion.h1 
                 style={{ rotateX: 10 }}
-                className="text-[14vw] lg:text-[12vw] font-display font-black tracking-tighter leading-[0.85] uppercase italic mix-blend-difference"
+                className="text-[12vw] sm:text-[10vw] lg:text-[12vw] font-display font-black tracking-tighter leading-[0.9] sm:leading-[0.85] uppercase italic mix-blend-difference"
               >
                 {t('home.hero_title')} <br />
                 <span className="text-white outline-text-thick animate-glitch">{t('home.hero_subtitle')}</span>
@@ -70,26 +70,26 @@ const Home: React.FC = () => {
                   scale: [1, 1.1, 1]
                 }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-10 right-0 lg:right-20 px-8 py-3 bg-neon-pink text-ink text-[10px] font-black uppercase tracking-widest rounded-full shadow-[0_0_40px_rgba(255,0,110,0.5)] -rotate-12 z-20"
+                className="absolute -top-8 -right-2 sm:-top-12 sm:right-4 lg:right-20 px-3 py-1 lg:px-8 lg:py-3 bg-neon-pink text-ink text-[6px] lg:text-[10px] font-black uppercase tracking-widest rounded-full shadow-[0_0_40px_rgba(255,0,110,0.5)] -rotate-12 z-20"
               >
                 SYSTEM ONLINE
               </motion.div>
             </div>
 
-            <div className="flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-24">
-              <div className="space-y-6 text-center lg:text-left max-w-xl">
-                <p className="text-white/60 text-xl lg:text-3xl font-medium leading-[1.1]">
+            <div className="flex flex-col lg:flex-row items-center justify-center gap-10 lg:gap-24">
+              <div className="space-y-6 text-center lg:text-left max-w-xl px-4">
+                <p className="text-white/60 text-sm sm:text-lg lg:text-3xl font-medium leading-[1.4] sm:leading-[1.1]">
                   {t('home.hero_desc')}
                 </p>
-                <div className="flex items-center justify-center lg:justify-start gap-4">
+                <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
                   <div className="flex -space-x-3">
                     {[1,2,3,4].map(i => (
-                      <div key={i} className="w-10 h-10 rounded-full border-2 border-ink bg-white/10 overflow-hidden">
+                      <div key={i} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-ink bg-white/10 overflow-hidden">
                         <img src={`https://picsum.photos/seed/artist${i}/100/100`} alt="Artist" referrerPolicy="no-referrer" />
                       </div>
                     ))}
                   </div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Joined by 12k+ Rebels</p>
+                  <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-white/20">Joined by 12k+ Rebels</p>
                 </div>
               </div>
               
@@ -133,7 +133,7 @@ const Home: React.FC = () => {
         <div className="max-w-7xl mx-auto space-y-16">
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
             <div className="space-y-4">
-              <h2 className="text-5xl lg:text-7xl font-display font-black uppercase leading-none tracking-tighter">
+              <h2 className="text-4xl sm:text-5xl lg:text-7xl font-display font-black uppercase leading-none tracking-tighter">
                 Everything you <br />
                 <span className="text-cyber-cyan">actually need.</span>
               </h2>
@@ -147,7 +147,7 @@ const Home: React.FC = () => {
             {/* Distribution */}
             <motion.div 
               whileHover={{ y: -10, rotateX: 5, rotateY: 5 }}
-              className="md:col-span-3 lg:col-span-4 glass-card p-10 space-y-8 group hover:bg-white/10 transition-colors cursor-pointer perspective-1000"
+              className="md:col-span-3 lg:col-span-4 glass-card p-6 sm:p-10 space-y-8 group hover:bg-white/10 transition-colors cursor-pointer perspective-1000"
             >
               <div className="w-16 h-16 bg-cyber-cyan/10 text-cyber-cyan rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform group-hover:bg-cyber-cyan group-hover:text-ink shadow-2xl shadow-cyber-cyan/0 group-hover:shadow-cyber-cyan/20">
                 <Globe size={32} />
@@ -161,7 +161,7 @@ const Home: React.FC = () => {
             {/* AI Insights */}
             <motion.div 
               whileHover={{ y: -10, rotateX: -5, rotateY: 5 }}
-              className="md:col-span-3 lg:col-span-8 glass-card p-10 flex flex-col lg:flex-row gap-12 group hover:bg-white/10 transition-colors cursor-pointer overflow-hidden relative perspective-1000"
+              className="md:col-span-3 lg:col-span-8 glass-card p-6 sm:p-10 flex flex-col lg:flex-row gap-12 group hover:bg-white/10 transition-colors cursor-pointer overflow-hidden relative perspective-1000"
             >
               <div className="absolute top-0 right-0 w-64 h-64 bg-neon-pink/5 blur-[80px] rounded-full -mr-32 -mt-32" />
               <div className="flex-1 space-y-8 relative z-10">
@@ -202,7 +202,7 @@ const Home: React.FC = () => {
             {/* Marketplace */}
             <motion.div 
               whileHover={{ y: -10, rotateX: 5, rotateY: -5 }}
-              className="md:col-span-6 lg:col-span-7 glass-card p-10 flex items-center justify-between group hover:bg-white/10 transition-colors cursor-pointer overflow-hidden relative perspective-1000"
+              className="md:col-span-6 lg:col-span-7 glass-card p-6 sm:p-10 flex items-center justify-between group hover:bg-white/10 transition-colors cursor-pointer overflow-hidden relative perspective-1000"
             >
               <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-400/5 blur-[80px] rounded-full -ml-32 -mb-32" />
               <div className="space-y-8 max-w-md relative z-10">
@@ -224,7 +224,7 @@ const Home: React.FC = () => {
             {/* Financing */}
             <motion.div 
               whileHover={{ y: -10, rotateX: -5, rotateY: -5 }}
-              className="md:col-span-6 lg:col-span-5 glass-card p-10 space-y-8 group hover:bg-white/10 transition-colors cursor-pointer overflow-hidden relative perspective-1000"
+              className="md:col-span-6 lg:col-span-5 glass-card p-6 sm:p-10 space-y-8 group hover:bg-white/10 transition-colors cursor-pointer overflow-hidden relative perspective-1000"
             >
               <div className="absolute top-1/2 right-0 w-64 h-64 bg-amber-400/5 blur-[80px] rounded-full -mr-32 -mt-32" />
               <div className="w-16 h-16 bg-amber-400/10 text-amber-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform group-hover:bg-amber-400 group-hover:text-ink shadow-2xl shadow-amber-400/0 group-hover:shadow-amber-400/20">
@@ -249,7 +249,7 @@ const Home: React.FC = () => {
         <div className="max-w-4xl mx-auto glass-card p-20 text-center space-y-12 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyber-cyan via-neon-pink to-electric-purple" />
           
-          <h2 className="text-5xl lg:text-7xl font-display font-black uppercase tracking-tighter leading-none">
+          <h2 className="text-4xl sm:text-5xl lg:text-7xl font-display font-black uppercase tracking-tighter leading-none">
             Ready to <br />
             <span className="text-white outline-text">Rebel?</span>
           </h2>

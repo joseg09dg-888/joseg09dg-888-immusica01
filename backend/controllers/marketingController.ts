@@ -310,3 +310,51 @@ export const getMiBranding = (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Error al obtener branding' });
   }
 };
+
+export const generarContenidoPromocional = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'No autorizado' });
+    const { track_id, platform } = req.body;
+    
+    const artists = ArtistModel.getArtistsByUser(req.user.id);
+    if (artists.length === 0) return res.status(404).json({ error: 'Artista no encontrado' });
+    const artist = artists[0];
+    
+    const branding = BrandingModel.getBrandingByArtist(artist.id);
+    
+    const prompt = `
+      Eres un experto en copy para redes sociales musicales.
+      Genera 3 opciones de posts para ${platform} promocionando un nuevo lanzamiento.
+      
+      Información del Artista:
+      - Nombre: ${artist.name}
+      - Arquetipo: ${branding?.arquetipo || 'Artista'}
+      - Manifiesto: ${branding?.manifiesto || ''}
+      
+      Debes incluir:
+      - Texto del post atractivo.
+      - Hashtags estratégicos.
+      - Ideas de visuales.
+      
+      Devuelve EXCLUSIVAMENTE un objeto JSON con:
+      {
+        "opciones": [
+          { "texto": "...", "hashtags": ["...", "..."], "visual": "..." },
+          ...
+        ]
+      }
+    `;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: { responseMimeType: "application/json" }
+    });
+    
+    const aiResponse = JSON.parse(response.text || '{}');
+    res.json(aiResponse);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al generar contenido promocional' });
+  }
+};

@@ -25,7 +25,7 @@ const MoodDiscovery: React.FC = () => {
     setLoading(true);
     try {
       const res = await getMoodRecommendations(selectedMood);
-      setRecommendations(res.data.tracks || []);
+      setRecommendations(Array.isArray(res.data.tracks) ? res.data.tracks : []);
     } catch (err: any) {
       if (err.response?.status === 401) {
         toast.error('Spotify login required');
@@ -87,7 +87,7 @@ const MoodDiscovery: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             className="grid grid-cols-1 md:grid-cols-2 gap-4"
           >
-            {recommendations.map((track: any) => (
+            {Array.isArray(recommendations) && recommendations.map((track: any) => (
               <div key={track.id} className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5 group hover:border-white/20 transition-all">
                 <img 
                   src={track.album.images[0]?.url} 

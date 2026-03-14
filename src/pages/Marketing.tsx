@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   getMiBranding, getBrandingQuestions, submitBrandingTest, 
-  generateSensoryBranding, generateTargetMarket, generateContentPlan 
+  generateSensoryBranding, generateTargetMarket, generateContentPlan,
+  generatePromotionalContent, getTracks
 } from '../services/api';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -14,16 +15,34 @@ import { toast } from 'sonner';
 const Marketing: React.FC = () => {
   const [branding, setBranding] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'test' | 'sensory' | 'market' | 'plan'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'test' | 'sensory' | 'market' | 'plan' | 'promo'>('overview');
   
   // Test State
   const [questions, setQuestions] = useState<string[]>([]);
   const [answers, setAnswers] = useState<string[]>(new Array(12).fill(''));
   const [submittingTest, setSubmittingTest] = useState(false);
 
+  // Promo State
+  const [tracks, setTracks] = useState<any[]>([]);
+  const [selectedTrackId, setSelectedTrackId] = useState<number | null>(null);
+  const [selectedPlatform, setSelectedPlatform] = useState('Instagram');
+  const [promoContent, setPromoContent] = useState<any>(null);
+  const [generatingPromo, setGeneratingPromo] = useState(false);
+
   useEffect(() => {
     fetchBranding();
+    fetchTracks();
   }, []);
+
+  const fetchTracks = async () => {
+    try {
+      const res = await getTracks();
+      setTracks(res.data);
+      if (res.data.length > 0) setSelectedTrackId(res.data[0].id);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchBranding = async () => {
     setLoading(true);
@@ -75,6 +94,20 @@ const Marketing: React.FC = () => {
     }
   };
 
+  const handleGeneratePromo = async () => {
+    if (!selectedTrackId) return;
+    setGeneratingPromo(true);
+    try {
+      const res = await generatePromotionalContent(selectedTrackId, selectedPlatform);
+      setPromoContent(res.data);
+      toast.success('Contenido promocional generado');
+    } catch (err) {
+      toast.error('Error al generar contenido');
+    } finally {
+      setGeneratingPromo(false);
+    }
+  };
+
   if (loading && !branding) return (
     <div className="h-screen flex items-center justify-center">
       <Loader2 className="animate-spin text-cyber-cyan" size={48} />
@@ -102,6 +135,7 @@ const Marketing: React.FC = () => {
               { id: 'sensory', label: 'Sensory', icon: Palette },
               { id: 'market', label: 'Market', icon: Target },
               { id: 'plan', label: 'Content Plan', icon: Calendar },
+              { id: 'promo', label: 'AI Promo', icon: Megaphone },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -384,6 +418,114 @@ const Marketing: React.FC = () => {
                   </div>
                 </div>
               )}
+            </motion.div>
+          )}
+
+          {activeTab === 'promo' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+            >
+              <div className="lg:col-span-1 space-y-8">
+                <div className="glass-card p-8 space-y-8">
+                  <h3 className="text-xl font-display font-black uppercase italic">Promo Config</h3>
+                  
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-white/40">Select Track</label>
+                    <select 
+                      value={selectedTrackId || ''}
+                      onChange={(e) => setSelectedTrackId(Number(e.target.value))}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm outline-none focus:border-neon-pink transition-all"
+                    >
+                      {tracks.map(t => (
+                        <option key={t.id} value={t.id}>{t.title}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-white/40">Platform</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {['Instagram', 'TikTok', 'Twitter', 'Facebook'].map(p => (
+                        <button
+                          key={p}
+                          onClick={() => setSelectedPlatform(p)}
+                          className={`p-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+                            selectedPlatform === p ? 'bg-neon-pink border-neon-pink text-white' : 'bg-white/5 border-white/10 text-white/40 hover:text-white'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={handleGeneratePromo}
+                    disabled={generatingPromo || !selectedTrackId}
+                    className="w-full py-4 bg-neon-pink text-white rounded-xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-neon-pink/20 hover:scale-105 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                  >
+                    {generatingPromo ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
+                    <span>Generate Content</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="lg:col-span-2">
+                {!promoContent ? (
+                  <div className="glass-card p-20 text-center space-y-6 border-dashed border-white/10">
+                    <Megaphone size={48} className="mx-auto text-white/10" />
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Select a track and platform to generate promo content</p>
+                  </div>
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="glass-card p-10 space-y-10"
+                  >
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-2xl font-display font-black uppercase italic text-neon-pink">{selectedPlatform} Strategy</h3>
+                      <div className="px-3 py-1 bg-white/5 rounded-full border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/40">
+                        Neural AI Output
+                      </div>
+                    </div>
+
+                    <div className="space-y-8">
+                      <div className="space-y-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Copy / Caption</p>
+                        <div className="p-6 bg-white/5 rounded-2xl border border-white/5 text-sm leading-relaxed text-white/80 italic">
+                          "{promoContent.copy}"
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Hashtags</p>
+                          <div className="flex flex-wrap gap-2">
+                            {promoContent.hashtags.map((h: string, i: number) => (
+                              <span key={i} className="px-3 py-1 bg-cyber-cyan/10 text-cyber-cyan rounded-lg text-[10px] font-bold">
+                                {h}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Best Time to Post</p>
+                          <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-sm font-bold text-emerald-400">
+                            {promoContent.best_time}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Visual Suggestion</p>
+                        <p className="text-xs text-white/60 leading-relaxed">{promoContent.visual_suggestion}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

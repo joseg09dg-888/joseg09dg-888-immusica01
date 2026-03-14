@@ -5,9 +5,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { 
   LayoutDashboard, Zap, BarChart3, Users, LogOut, LogIn, 
-  ShieldCheck, DollarSign, Database, Menu, X, ChevronDown,
+  ShieldCheck, DollarSign, Database, Menu, X, ChevronDown, Radio,
   Palette, ShoppingBag, Rocket, Scale, Globe, Music, Facebook, Wallet,
-  Languages
+  Languages, Shield, MessageSquare, Image, Target, Share2, Sparkles, ArrowRight
 } from 'lucide-react';
 
 const Navbar: React.FC = () => {
@@ -19,10 +19,12 @@ const Navbar: React.FC = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   const languages = [
-    { code: 'en', label: 'English' },
     { code: 'es', label: 'Español' },
+    { code: 'en', label: 'English' },
+    { code: 'fr', label: 'Français' },
     { code: 'pt', label: 'Português' },
-    { code: 'fr', label: 'Français' }
+    { code: 'hi', label: 'हिन्दी' },
+    { code: 'zh', label: '中文' }
   ];
 
   const changeLanguage = (lng: string) => {
@@ -43,19 +45,41 @@ const Navbar: React.FC = () => {
         { label: t('nav.dashboard'), path: '/dashboard', icon: LayoutDashboard },
         { label: t('nav.catalog'), path: '/catalog', icon: Music, protected: true },
         { label: t('nav.stats'), path: '/stats', icon: BarChart3, protected: true },
-        { label: t('nav.splits'), path: '/splits', icon: Users, protected: true },
-        { label: t('nav.wallet'), path: '/wallet', icon: Wallet, protected: true },
+        { label: t('nav.artists'), path: '/artists', icon: Users, protected: true },
+        { label: t('nav.ai_chat'), path: '/ai-chat', icon: Sparkles, protected: true },
+        { label: t('nav.community'), path: '/chat', icon: MessageSquare, protected: true },
       ]
     },
     {
       label: t('nav.services'),
-      items: [
-        { label: 'Marketing', path: '/marketing', icon: Zap, protected: true },
-        { label: 'Facebook Ads', path: '/facebook-ads', icon: Facebook, protected: true },
-        { label: 'Marketplace', path: '/marketplace', icon: ShoppingBag, protected: true },
-        { label: 'Migration', path: '/migration', icon: Database, protected: true },
-        { label: 'Financing', path: '/financing', icon: DollarSign, protected: true },
-        { label: 'Legal', path: '/legal', icon: ShieldCheck, protected: true },
+      categories: [
+        {
+          title: 'Neural Suite',
+          items: [
+            { label: 'Neural Vault', path: '/vault', icon: Database, protected: true, desc: 'Secure Asset Backup' },
+            { label: 'Spotify Verify', path: '/spotify-verify', icon: Music, protected: true, desc: 'Artist Verification' },
+            { label: 'YouTube CID', path: '/youtube-cid', icon: Radio, protected: true, desc: 'Content ID Monetization' },
+            { label: 'RIAA Certs', path: '/riaa', icon: Shield, protected: true, desc: 'Certification Tracking' },
+          ]
+        },
+        {
+          title: 'Distribution',
+          items: [
+            { label: 'Releases', path: '/releases', icon: Rocket, protected: true, desc: 'Neural Release Scheduling' },
+            { label: 'Videos', path: '/videos', icon: Image, protected: true, desc: 'Global Video Distribution' },
+            { label: 'Publishing', path: '/publishing', icon: Shield, protected: true, desc: 'Editorial & Royalties' },
+            { label: 'Playlists', path: '/playlists', icon: Database, protected: true, desc: 'Database Management' },
+          ]
+        },
+        {
+          title: 'Growth & Business',
+          items: [
+            { label: 'Marketing', path: '/marketing', icon: Zap, protected: true, desc: 'AI Branding & Strategy' },
+            { label: 'Marketplace', path: '/marketplace', icon: ShoppingBag, protected: true, desc: 'Beats & Licenses' },
+            { label: 'Financing', path: '/financing', icon: DollarSign, protected: true, desc: 'Royalty Advances' },
+            { label: 'Legal', path: '/legal', icon: ShieldCheck, protected: true, desc: 'AI Contract Agent' },
+          ]
+        }
       ]
     }
   ];
@@ -66,8 +90,8 @@ const Navbar: React.FC = () => {
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
       scrolled ? 'py-4' : 'py-6'
     }`}>
-      <div className="max-w-7xl mx-auto px-6">
-        <div className={`relative glass-card px-8 py-4 flex items-center justify-between border-white/10 transition-all duration-500 ${
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className={`relative glass-card px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between border-white/10 transition-all duration-500 ${
           scrolled ? 'rounded-2xl shadow-2xl shadow-black/50' : 'rounded-[2rem]'
         }`}>
           {/* Logo */}
@@ -76,14 +100,14 @@ const Navbar: React.FC = () => {
               <Rocket className="text-ink" size={20} />
             </div>
             <div className="flex flex-col">
-              <span className="text-lg font-display font-black tracking-tighter leading-none uppercase">Elite</span>
-              <span className="text-[10px] font-black tracking-[0.3em] text-cyber-cyan uppercase leading-none">Rebellion</span>
+              <span className="text-base sm:text-lg font-display font-black tracking-tighter leading-none uppercase">Elite</span>
+              <span className="text-[8px] sm:text-[10px] font-black tracking-[0.2em] sm:tracking-[0.3em] text-cyber-cyan uppercase leading-none">Rebellion</span>
             </div>
           </Link>
 
           {/* Desktop Nav */}
           <div className="hidden lg:flex items-center gap-2">
-            {navGroups[0].items.map((item) => {
+            {navGroups[0].items?.map((item) => {
               if (item.protected && !isAuthenticated) return null;
               return (
                 <Link
@@ -106,7 +130,7 @@ const Navbar: React.FC = () => {
               <div className="relative group/mega" onMouseEnter={() => setActiveDropdown('services')} onMouseLeave={() => setActiveDropdown(null)}>
                 <button
                   className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
-                    navGroups[1].items.some(i => isActive(i.path))
+                    navGroups[1].categories?.some(cat => cat.items.some(i => isActive(i.path)))
                       ? 'text-cyber-cyan'
                       : 'text-white/40 hover:text-white hover:bg-white/5'
                   }`}
@@ -121,49 +145,58 @@ const Navbar: React.FC = () => {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute top-full -right-48 mt-4 w-[600px] glass-card p-8 border-white/10 shadow-2xl overflow-hidden"
+                      className="absolute top-full -right-64 mt-4 w-[800px] glass-card p-10 border-white/10 shadow-2xl overflow-hidden"
                     >
                       {/* Decorative Background */}
-                      <div className="absolute top-0 right-0 w-64 h-64 bg-cyber-cyan/5 blur-[80px] rounded-full -mr-32 -mt-32" />
+                      <div className="absolute top-0 right-0 w-96 h-96 bg-cyber-cyan/5 blur-[100px] rounded-full -mr-48 -mt-48" />
                       
-                      <div className="relative z-10 grid grid-cols-2 gap-4">
-                        {navGroups[1].items.map((item) => (
-                          <Link
-                            key={item.path}
-                            to={item.path}
-                            onClick={() => setActiveDropdown(null)}
-                            className={`group/item p-6 rounded-2xl flex items-start gap-6 transition-all border border-transparent ${
-                              isActive(item.path)
-                                ? 'bg-cyber-cyan/10 border-cyber-cyan/20 text-cyber-cyan'
-                                : 'hover:bg-white/5 hover:border-white/10 text-white/60 hover:text-white'
-                            }`}
-                          >
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
-                              isActive(item.path) 
-                                ? 'bg-cyber-cyan text-ink shadow-lg shadow-cyber-cyan/20' 
-                                : 'bg-white/5 group-hover/item:bg-white/10'
-                            }`}>
-                              <item.icon size={20} className="group-hover/item:scale-110 transition-transform" />
+                      <div className="relative z-10 grid grid-cols-3 gap-8">
+                        {navGroups[1].categories?.map((category) => (
+                          <div key={category.title} className="space-y-6">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 px-2">{category.title}</h4>
+                            <div className="space-y-2">
+                              {category.items.map((item) => (
+                                <Link
+                                  key={item.path}
+                                  to={item.path}
+                                  onClick={() => setActiveDropdown(null)}
+                                  className={`group/item p-4 rounded-xl flex items-center gap-4 transition-all border border-transparent ${
+                                    isActive(item.path)
+                                      ? 'bg-cyber-cyan/10 border-cyber-cyan/20 text-cyber-cyan'
+                                      : 'hover:bg-white/5 hover:border-white/10 text-white/60 hover:text-white'
+                                  }`}
+                                >
+                                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                                    isActive(item.path) 
+                                      ? 'bg-cyber-cyan text-ink shadow-lg shadow-cyber-cyan/20' 
+                                      : 'bg-white/5 group-hover/item:bg-white/10'
+                                  }`}>
+                                    <item.icon size={18} className="group-hover/item:scale-110 transition-transform" />
+                                  </div>
+                                  <div className="space-y-0.5">
+                                    <span className="text-[10px] font-black uppercase tracking-widest block">{item.label}</span>
+                                    <p className="text-[9px] text-white/20 font-medium leading-tight">
+                                      {item.desc}
+                                    </p>
+                                  </div>
+                                </Link>
+                              ))}
                             </div>
-                            <div className="space-y-1">
-                              <span className="text-xs font-black uppercase tracking-widest block">{item.label}</span>
-                              <p className="text-[10px] text-white/20 font-medium leading-tight">
-                                {item.label === 'Marketing' && 'AI Branding & Content Strategy'}
-                                {item.label === 'Facebook Ads' && 'Neural Campaign Management'}
-                                {item.label === 'Marketplace' && 'Exclusive Beats & Licenses'}
-                                {item.label === 'Migration' && 'Bulk Catalog AI Processing'}
-                                {item.label === 'Financing' && 'Data-Driven Royalty Advances'}
-                                {item.label === 'Legal' && 'AI Contract & Dispute Agent'}
-                              </p>
-                            </div>
-                          </Link>
+                          </div>
                         ))}
                       </div>
                       
-                      <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/20">All systems operational</p>
-                        <Link to="/dashboard" className="text-[10px] font-black uppercase tracking-widest text-cyber-cyan hover:text-white transition-colors">
-                          View Dashboard →
+                      <div className="mt-10 pt-6 border-t border-white/5 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                            <p className="text-[10px] font-black uppercase tracking-widest text-white/20">{t('all_systems_operational')}</p>
+                          </div>
+                          <span className="h-4 w-px bg-white/5" />
+                          <p className="text-[10px] font-black uppercase tracking-widest text-white/20">v2.4.0-neural</p>
+                        </div>
+                        <Link to="/dashboard" className="text-[10px] font-black uppercase tracking-widest text-cyber-cyan hover:text-white transition-colors flex items-center gap-2 group">
+                          {t('view_dashboard')} <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
                         </Link>
                       </div>
                     </motion.div>
@@ -297,7 +330,7 @@ const Navbar: React.FC = () => {
                   <div key={group.label} className="space-y-4">
                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 px-4">{group.label}</h3>
                     <div className="grid gap-2">
-                      {group.items.map((item) => {
+                      {group.items?.map((item) => {
                         if (item.protected && !isAuthenticated) return null;
                         return (
                           <Link
@@ -315,6 +348,26 @@ const Navbar: React.FC = () => {
                           </Link>
                         );
                       })}
+                      {group.categories?.map((category) => (
+                        <div key={category.title} className="space-y-2 mt-4">
+                          <h4 className="text-[10px] font-black uppercase tracking-widest text-white/10 px-4">{category.title}</h4>
+                          {category.items.map((item) => (
+                            <Link
+                              key={item.path}
+                              to={item.path}
+                              onClick={() => setIsOpen(false)}
+                              className={`p-6 rounded-2xl flex items-center gap-6 transition-all ${
+                                isActive(item.path)
+                                  ? 'bg-cyber-cyan text-ink'
+                                  : 'bg-white/5 text-white/60'
+                              }`}
+                            >
+                              <item.icon size={24} />
+                              <span className="text-xl font-display font-black uppercase tracking-tight">{item.label}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}

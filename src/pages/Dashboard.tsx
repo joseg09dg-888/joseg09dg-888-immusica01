@@ -7,23 +7,40 @@ import {
   ShieldCheck, DollarSign, Database, ShoppingBag,
   Rocket, ArrowRight, Sparkles, Target, Facebook,
   Music, Globe, TrendingUp, Activity, Bell, Settings,
-  CreditCard, Headphones, Mic2, Radio, Wallet, ArrowUpRight
+  CreditCard, Headphones, Mic2, Radio, Wallet, ArrowUpRight, Shield,
+  Github, GitBranch, GitCommit, ExternalLink, Copy, Server, MessageSquare, Image
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getArtistSummary } from '../services/api';
+import { getArtistSummary, getSystemInfo } from '../services/api';
+import { toast } from 'sonner';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const [stats, setStats] = useState<any>(null);
+  const [systemInfo, setSystemInfo] = useState<any>(null);
 
   useEffect(() => {
     getArtistSummary()
       .then(res => setStats(res.data))
       .catch(console.error);
+
+    getSystemInfo()
+      .then(res => setSystemInfo(res.data))
+      .catch(console.error);
   }, []);
 
   const services = [
+    { 
+      title: 'Neural Vault', 
+      desc: 'Secure backup for masters & assets.', 
+      path: '/vault', 
+      icon: Database, 
+      color: 'text-cyber-cyan',
+      bg: 'bg-cyber-cyan/10',
+      size: 'lg',
+      accent: 'from-cyber-cyan/20 to-transparent'
+    },
     { 
       title: 'Marketing & AI', 
       desc: 'Archetypes, Branding & 30-day Content Plans.', 
@@ -31,8 +48,38 @@ const Dashboard: React.FC = () => {
       icon: Sparkles, 
       color: 'text-neon-pink',
       bg: 'bg-neon-pink/10',
-      size: 'lg',
+      size: 'md',
       accent: 'from-neon-pink/20 to-transparent'
+    },
+    { 
+      title: 'Spotify Verify', 
+      desc: 'Connect & verify your profile.', 
+      path: '/spotify-verify', 
+      icon: Music, 
+      color: 'text-emerald-400',
+      bg: 'bg-emerald-400/10',
+      size: 'md',
+      accent: 'from-emerald-400/20 to-transparent'
+    },
+    { 
+      title: 'YouTube CID', 
+      desc: 'Monetize your music on YouTube.', 
+      path: '/youtube-cid', 
+      icon: Radio, 
+      color: 'text-red-500',
+      bg: 'bg-red-500/10',
+      size: 'md',
+      accent: 'from-red-500/20 to-transparent'
+    },
+    { 
+      title: 'RIAA Certs', 
+      desc: 'Track your gold & platinum status.', 
+      path: '/riaa', 
+      icon: Shield, 
+      color: 'text-amber-400',
+      bg: 'bg-amber-400/10',
+      size: 'md',
+      accent: 'from-amber-400/20 to-transparent'
     },
     { 
       title: 'Performance', 
@@ -55,16 +102,6 @@ const Dashboard: React.FC = () => {
       accent: 'from-emerald-400/20 to-transparent'
     },
     { 
-      title: 'Facebook Ads', 
-      desc: 'AI-optimized ad campaigns.', 
-      path: '/facebook-ads', 
-      icon: Facebook, 
-      color: 'text-[#1877F2]',
-      bg: 'bg-[#1877F2]/10',
-      size: 'md',
-      accent: 'from-[#1877F2]/20 to-transparent'
-    },
-    { 
       title: 'Financing', 
       desc: 'Royalty-backed advances.', 
       path: '/financing', 
@@ -73,36 +110,6 @@ const Dashboard: React.FC = () => {
       bg: 'bg-amber-400/10',
       size: 'md',
       accent: 'from-amber-400/20 to-transparent'
-    },
-    { 
-      title: 'Catalog Migration', 
-      desc: 'Bulk upload with AI metadata.', 
-      path: '/migration', 
-      icon: Database, 
-      color: 'text-electric-purple',
-      bg: 'bg-electric-purple/10',
-      size: 'md',
-      accent: 'from-electric-purple/20 to-transparent'
-    },
-    { 
-      title: 'Legal Agent', 
-      desc: 'AI Contract review & disputes.', 
-      path: '/legal', 
-      icon: ShieldCheck, 
-      color: 'text-white',
-      bg: 'bg-white/10',
-      size: 'md',
-      accent: 'from-white/10 to-transparent'
-    },
-    { 
-      title: 'Splits', 
-      desc: 'Manage collaborator shares.', 
-      path: '/splits', 
-      icon: Users, 
-      color: 'text-white/60',
-      bg: 'bg-white/5',
-      size: 'sm',
-      accent: 'from-white/5 to-transparent'
     }
   ];
 
@@ -130,7 +137,7 @@ const Dashboard: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-6xl lg:text-9xl font-display font-black tracking-tighter uppercase leading-none italic"
+              className="text-4xl sm:text-6xl lg:text-9xl font-display font-black tracking-tighter uppercase leading-none italic"
             >
               {t('dashboard.welcome')} <br />
               <span className="text-white outline-text animate-glitch">{user?.name || 'Artist'}</span>
@@ -144,8 +151,8 @@ const Dashboard: React.FC = () => {
             className="flex items-center gap-8 p-8 bg-white/[0.02] rounded-[40px] border border-white/5 backdrop-blur-xl group"
           >
             <div className="text-right space-y-1">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20">{t('dashboard.current_tier')}</p>
-              <p className="text-xl font-display font-black text-cyber-cyan italic uppercase tracking-tight">Elite Rebellion Pro</p>
+              <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] text-white/20">{t('dashboard.current_tier')}</p>
+              <p className="text-base sm:text-xl font-display font-black text-cyber-cyan italic uppercase tracking-tight">Elite Rebellion Pro</p>
             </div>
             <Link to="/plans" className="w-16 h-16 rounded-[24px] bg-cyber-cyan text-ink flex items-center justify-center hover:scale-110 transition-all shadow-xl shadow-cyber-cyan/20 group">
               <Zap size={24} className="group-hover:fill-current" />
@@ -162,7 +169,7 @@ const Dashboard: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
               whileHover={{ y: -10, scale: 1.02 }}
-              className={`group relative glass-card p-10 flex flex-col justify-between overflow-hidden hover:bg-white/[0.05] transition-all border-white/5 ${
+              className={`group relative glass-card p-6 sm:p-10 flex flex-col justify-between overflow-hidden hover:bg-white/[0.05] transition-all border-white/5 ${
                 service.size === 'lg' ? 'lg:col-span-2 lg:row-span-2' : ''
               }`}
             >
@@ -206,7 +213,7 @@ const Dashboard: React.FC = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4 }}
-            className="lg:col-span-2 glass-card p-10 flex flex-col justify-between bg-gradient-to-br from-cyber-cyan/10 to-transparent border-cyber-cyan/20 relative overflow-hidden group"
+            className="lg:col-span-2 glass-card p-6 sm:p-10 flex flex-col justify-between bg-gradient-to-br from-cyber-cyan/10 to-transparent border-cyber-cyan/20 relative overflow-hidden group"
           >
             <div className="absolute top-0 right-0 w-64 h-64 bg-cyber-cyan/10 blur-[60px] rounded-full -mr-32 -mt-32 group-hover:bg-cyber-cyan/20 transition-colors" />
             
@@ -223,11 +230,11 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-12 relative z-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 relative z-10">
               <div className="space-y-2">
                 <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">{t('dashboard.streams')}</p>
                 <div className="flex items-baseline gap-2">
-                  <p className="text-5xl lg:text-6xl font-display font-black tracking-tighter italic">
+                  <p className="text-4xl sm:text-5xl lg:text-6xl font-display font-black tracking-tighter italic">
                     {stats?.total_streams?.toLocaleString() || '0'}
                   </p>
                   <span className="text-xs font-black text-emerald-400">+12%</span>
@@ -244,7 +251,7 @@ const Dashboard: React.FC = () => {
               <div className="space-y-2">
                 <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">{t('dashboard.revenue')}</p>
                 <div className="flex items-baseline gap-2">
-                  <p className="text-5xl lg:text-6xl font-display font-black tracking-tighter italic">
+                  <p className="text-4xl sm:text-5xl lg:text-6xl font-display font-black tracking-tighter italic">
                     ${stats?.total_ingresos?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
                   </p>
                   <span className="text-xs font-black text-emerald-400">+5%</span>
@@ -271,10 +278,10 @@ const Dashboard: React.FC = () => {
           {/* Quick Actions */}
           <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-6">
             {[
-              { icon: Headphones, label: 'Catalog', path: '/catalog' },
+              { icon: Headphones, label: 'Headphones', path: '/catalog' },
               { icon: Wallet, label: 'Wallet', path: '/wallet' },
               { icon: Radio, label: 'Ads', path: '/facebook-ads' },
-              { icon: Settings, label: '/dashboard', path: '/dashboard' },
+              { icon: Settings, label: 'Settings', path: '/dashboard' },
             ].map((action, i) => (
               <Link 
                 key={i}

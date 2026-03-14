@@ -8,6 +8,9 @@ export interface Artist {
   bio: string | null;
   tier: string;
   avatar: string | null;
+  spotify_verified: boolean;
+  spotify_id: string | null;
+  spotify_token: string | null;
   created_at: string;
 }
 
@@ -36,4 +39,37 @@ export const updateArtist = (id: number, data: Partial<Artist>) => {
 
 export const deleteArtist = (id: number) => {
   return db.prepare('DELETE FROM artists WHERE id = ?').run(id);
+};
+
+// Videos
+export const getVideosByArtist = (artistId: number) => {
+  return db.prepare('SELECT * FROM videos WHERE artist_id = ? ORDER BY created_at DESC').all(artistId);
+};
+
+export const createVideo = (artistId: number, title: string, videoUrl: string, platform?: string) => {
+  return db.prepare('INSERT INTO videos (artist_id, title, video_url, platform) VALUES (?, ?, ?, ?)').run(
+    artistId,
+    title,
+    videoUrl,
+    platform
+  );
+};
+
+export const deleteVideo = (id: number) => {
+  return db.prepare('DELETE FROM videos WHERE id = ?').run(id);
+};
+
+// Compositions
+export const getCompositionsByArtist = (artistId: number) => {
+  return db.prepare('SELECT * FROM compositions WHERE artist_id = ? ORDER BY created_at DESC').all(artistId);
+};
+
+export const createComposition = (artistId: number, title: string, iswc?: string, pro?: string, share?: number) => {
+  return db.prepare('INSERT INTO compositions (artist_id, title, iswc, pro, share) VALUES (?, ?, ?, ?, ?)').run(
+    artistId,
+    title,
+    iswc,
+    pro,
+    share
+  );
 };

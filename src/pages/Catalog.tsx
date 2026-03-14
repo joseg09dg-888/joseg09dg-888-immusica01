@@ -5,22 +5,30 @@ import {
   Music, Plus, Trash2, Edit2, Loader2, Play, 
   Pause, Upload, X, CheckCircle2, BarChart3, 
   TrendingUp, DollarSign, Globe, ArrowUpRight,
-  Activity, Sparkles
+  Activity, Sparkles, Clock, FileText, Languages, Video, Share2, Shield, Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { 
+  uploadLyrics, getLyrics, generatePromoReel, 
+  toggleAutoDistribute, activateLeaveALegacy 
+} from '../services/api';
 
 const Catalog: React.FC = () => {
   const [tracks, setTracks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTrack, setEditingTrack] = useState<any>(null);
-  const [formData, setFormData] = useState({ title: '', artist_id: '1' });
+  const [formData, setFormData] = useState({ title: '', artist_id: '1', release_date: '' });
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   
   const [selectedTrack, setSelectedTrack] = useState<any>(null);
   const [trackStats, setTrackStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+
+  const [lyricsTrack, setLyricsTrack] = useState<any>(null);
+  const [lyricsData, setLyricsData] = useState({ plain: '', synced: '' });
+  const [lyricsLoading, setLyricsLoading] = useState(false);
 
   useEffect(() => {
     fetchTracks();
@@ -34,6 +42,37 @@ const Catalog: React.FC = () => {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleViewLyrics = async (track: any) => {
+    setLyricsTrack(track);
+    setLyricsLoading(true);
+    try {
+      const res = await getLyrics(track.id);
+      setLyricsData({
+        plain: res.data.plain || '',
+        synced: res.data.synced || ''
+      });
+    } catch (err) {
+      setLyricsData({ plain: '', synced: '' });
+    } finally {
+      setLyricsLoading(false);
+    }
+  };
+
+  const handleSaveLyrics = async () => {
+    if (!lyricsTrack) return;
+    setSubmitting(true);
+    try {
+      await uploadLyrics(lyricsTrack.id, { lyrics: lyricsData.plain, type: 'plain' });
+      await uploadLyrics(lyricsTrack.id, { lyrics: lyricsData.synced, type: 'synced' });
+      toast.success('Lyrics updated successfully');
+      setLyricsTrack(null);
+    } catch (err) {
+      toast.error('Error saving lyrics');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -57,6 +96,7 @@ const Catalog: React.FC = () => {
       const data = new FormData();
       data.append('title', formData.title);
       data.append('artist_id', formData.artist_id);
+      if (formData.release_date) data.append('release_date', formData.release_date);
       if (file) data.append('audio', file);
 
       if (editingTrack) {
@@ -68,7 +108,7 @@ const Catalog: React.FC = () => {
       }
       setIsModalOpen(false);
       setEditingTrack(null);
-      setFormData({ title: '', artist_id: '1' });
+      setFormData({ title: '', artist_id: '1', release_date: '' });
       setFile(null);
       fetchTracks();
     } catch (err: any) {
@@ -86,6 +126,38 @@ const Catalog: React.FC = () => {
       fetchTracks();
     } catch (err) {
       toast.error('Error deleting track');
+    }
+  };
+
+  const handleGenerateReel = async (trackId: number) => {
+    toast.promise(generatePromoReel(trackId, 'Check out my new track!'), {
+      loading: 'Generando Reel Neural...',
+      success: (res) => {
+        window.open(res.data.video_url, '_blank');
+        return 'Reel generado con éxito';
+      },
+      error: 'Error al generar Reel'
+    });
+  };
+
+  const handleToggleAutoDistribute = async (trackId: number, current: boolean) => {
+    try {
+      await toggleAutoDistribute(trackId, !current);
+      toast.success(`Store Maximizer ${!current ? 'activado' : 'desactivado'}`);
+      fetchTracks();
+    } catch (error) {
+      toast.error('Error al actualizar Store Maximizer');
+    }
+  };
+
+  const handleLeaveALegacy = async (trackId: number) => {
+    if (!confirm('¿Activar Leave a Legacy? Esto asegura que tu música nunca sea eliminada.')) return;
+    try {
+      await activateLeaveALegacy(trackId);
+      toast.success('Leave a Legacy activado');
+      fetchTracks();
+    } catch (error) {
+      toast.error('Error al activar Leave a Legacy');
     }
   };
 
@@ -160,7 +232,7 @@ const Catalog: React.FC = () => {
                 
                 <div className="flex-1 space-y-3 text-center md:text-left">
                   <h3 className="text-2xl font-display font-black uppercase tracking-tight italic group-hover:text-cyber-cyan transition-colors">{track.title}</h3>
-                  <div className="flex items-center justify-center md:justify-start gap-6 text-[10px] font-black uppercase tracking-widest text-white/20">
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 text-[10px] font-black uppercase tracking-widest text-white/20">
                     <span className="flex items-center gap-2">
                       <Activity size={12} />
                       ID: {track.id}
@@ -170,12 +242,75 @@ const Catalog: React.FC = () => {
                       <Globe size={12} />
                       ISRC: {track.isrc || 'PENDING'}
                     </span>
+                    {track.release_date && (
+                      <>
+                        <span className="w-1 h-1 bg-white/10 rounded-full" />
+                        <span className="flex items-center gap-2 text-amber-400">
+                          <Clock size={12} />
+                          Scheduled: {new Date(track.release_date).toLocaleDateString()}
+                        </span>
+                      </>
+                    )}
+                    {track.auto_distribute === 1 && (
+                      <>
+                        <span className="w-1 h-1 bg-white/10 rounded-full" />
+                        <span className="flex items-center gap-2 text-cyber-cyan">
+                          <Zap size={12} />
+                          Maximizer Active
+                        </span>
+                      </>
+                    )}
+                    {track.leave_a_legacy === 1 && (
+                      <>
+                        <span className="w-1 h-1 bg-white/10 rounded-full" />
+                        <span className="flex items-center gap-2 text-emerald-400">
+                          <Shield size={12} />
+                          Legacy Protected
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
 
                 <div className="flex items-center gap-4">
                   <button 
-                    onClick={() => { setEditingTrack(track); setFormData({ title: track.title, artist_id: track.artist_id }); setIsModalOpen(true); }}
+                    onClick={() => handleGenerateReel(track.id)}
+                    className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-white/40 hover:bg-neon-pink/10 hover:text-neon-pink transition-all group/btn"
+                    title="Generate Promo Reel"
+                  >
+                    <Video size={20} className="group-hover:scale-110 transition-transform" />
+                  </button>
+                  <button 
+                    onClick={() => handleToggleAutoDistribute(track.id, track.auto_distribute === 1)}
+                    className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all group/btn ${track.auto_distribute === 1 ? 'bg-cyber-cyan/20 text-cyber-cyan' : 'bg-white/5 text-white/40 hover:bg-cyber-cyan/10 hover:text-cyber-cyan'}`}
+                    title="Store Maximizer"
+                  >
+                    <Zap size={20} className="group-hover:scale-110 transition-transform" />
+                  </button>
+                  <button 
+                    onClick={() => handleLeaveALegacy(track.id)}
+                    className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all group/btn ${track.leave_a_legacy === 1 ? 'bg-emerald-400/20 text-emerald-400' : 'bg-white/5 text-white/40 hover:bg-emerald-400/10 hover:text-emerald-400'}`}
+                    title="Leave a Legacy"
+                  >
+                    <Shield size={20} className="group-hover:scale-110 transition-transform" />
+                  </button>
+                  <button 
+                    onClick={() => handleViewLyrics(track)}
+                    className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-white/40 hover:bg-cyber-cyan/10 hover:text-cyber-cyan transition-all group/btn"
+                    title="Lyrics"
+                  >
+                    <FileText size={20} className="group-hover:scale-110 transition-transform" />
+                  </button>
+                  <button 
+                    onClick={() => { 
+                      setEditingTrack(track); 
+                      setFormData({ 
+                        title: track.title, 
+                        artist_id: track.artist_id,
+                        release_date: track.release_date ? track.release_date.split('T')[0] : ''
+                      }); 
+                      setIsModalOpen(true); 
+                    }}
                     className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-white/40 hover:bg-white/10 hover:text-white transition-all group/btn"
                   >
                     <Edit2 size={20} className="group-hover:scale-110 transition-transform" />
@@ -296,6 +431,88 @@ const Catalog: React.FC = () => {
         )}
       </AnimatePresence>
 
+      {/* Lyrics Modal */}
+      <AnimatePresence>
+        {lyricsTrack && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setLyricsTrack(null)}
+              className="absolute inset-0 bg-ink/95 backdrop-blur-2xl"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 40 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 40 }}
+              className="relative w-full max-w-3xl glass-card p-12 space-y-10 border-white/10 bg-white/[0.02]"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-cyber-cyan/10 text-cyber-cyan rounded-xl flex items-center justify-center">
+                    <Languages size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-display font-black uppercase tracking-tight italic">
+                      Lyrics: {lyricsTrack.title}
+                    </h2>
+                    <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Global Distribution Sync</p>
+                  </div>
+                </div>
+                <button onClick={() => setLyricsTrack(null)} className="w-10 h-10 bg-white/5 hover:bg-white/10 rounded-xl flex items-center justify-center transition-all">
+                  <X size={20} />
+                </button>
+              </div>
+
+              {lyricsLoading ? (
+                <div className="py-20 flex items-center justify-center">
+                  <Loader2 className="animate-spin text-cyber-cyan" size={48} />
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-white/40 flex items-center gap-2">
+                        <FileText size={12} />
+                        Plain Lyrics
+                      </label>
+                      <textarea 
+                        value={lyricsData.plain}
+                        onChange={(e) => setLyricsData({ ...lyricsData, plain: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm font-medium focus:border-cyber-cyan transition-all outline-none h-64 resize-none"
+                        placeholder="Paste plain lyrics here..."
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-white/40 flex items-center gap-2">
+                        <Clock size={12} />
+                        Synced Lyrics (LRC)
+                      </label>
+                      <textarea 
+                        value={lyricsData.synced}
+                        onChange={(e) => setLyricsData({ ...lyricsData, synced: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm font-mono focus:border-cyber-cyan transition-all outline-none h-64 resize-none"
+                        placeholder="[00:12.34] Lyric line..."
+                      />
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={handleSaveLyrics}
+                    disabled={submitting}
+                    className="w-full py-6 bg-cyber-cyan text-ink rounded-2xl font-black uppercase tracking-[0.4em] text-xs shadow-2xl shadow-cyber-cyan/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-4"
+                  >
+                    {submitting ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />}
+                    <span>{submitting ? 'Syncing...' : 'Save & Distribute Lyrics'}</span>
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Modal */}
       <AnimatePresence>
         {isModalOpen && (
@@ -332,6 +549,16 @@ const Catalog: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     className="w-full bg-white/5 border border-white/10 rounded-2xl px-8 py-5 text-sm font-bold focus:border-cyber-cyan transition-all outline-none"
                     placeholder="Enter track title"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-white/40">Release Date (Scheduling)</label>
+                  <input 
+                    type="date" 
+                    value={formData.release_date}
+                    onChange={(e) => setFormData({ ...formData, release_date: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-8 py-5 text-sm font-bold focus:border-cyber-cyan transition-all outline-none text-white"
                   />
                 </div>
 

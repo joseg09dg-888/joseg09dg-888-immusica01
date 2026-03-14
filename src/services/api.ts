@@ -25,7 +25,7 @@ export const handleCallback = (code: string) => {
 
 // ==================== WOMPI & PAYMENTS ====================
 export const getWompiPlans = () => api.get('/wompi/plans');
-export const createPaymentSession = (planId: string, amount: number) => 
+export const createWompiPayment = (planId: string, amount: number) => 
   api.post('/wompi/create-payment', { planId, amount });
 export const checkTransactionStatus = (id: string) => api.get(`/wompi/transaction/${id}`);
 export const getTransactionHistory = () => api.get('/wompi/history');
@@ -117,5 +117,97 @@ export const releaseWithholding = (id: number) => api.post(`/royalties/withholdi
 // ==================== LEGAL AGENT ====================
 export const queryLegalAgent = (query: string) => 
   api.post('/legal-agent/query', { query });
+
+// ==================== HYPERFOLLOW ====================
+export const createHyperFollow = (data: any) => api.post('/hyperfollow', data);
+export const getHyperFollows = () => api.get('/hyperfollow');
+export const deleteHyperFollow = (id: number) => api.delete(`/hyperfollow/${id}`);
+export const getHyperFollowBySlug = (slug: string) => api.get(`/hyperfollow/${slug}`);
+export const captureLead = (hyperfollowId: number, email: string) => 
+  api.post(`/hyperfollow/${hyperfollowId}/leads`, { email });
+
+// ==================== CHAT ====================
+export const getChatHistory = () => api.get('/chat/history');
+export const reportMessage = (messageId: number, reason: string) => 
+  api.post(`/chat/report/${messageId}`, { reason });
+
+// ==================== PLAYLISTS ====================
+export const getPlaylists = (filters?: any) => api.get('/playlists', { params: filters });
+export const createPlaylist = (data: any) => api.post('/playlists', data);
+export const updatePlaylist = (id: number, data: any) => api.put(`/playlists/${id}`, data);
+export const deletePlaylist = (id: number) => api.delete(`/playlists/${id}`);
+export const getPlaylistMoods = () => api.get('/playlists/moods');
+
+// ==================== PROMO CARDS ====================
+export const generatePromoCard = (trackId: number, options: any) => 
+  api.post(`/promo-cards/generate/${trackId}`, options);
+
+// ==================== SYSTEM ====================
+export const getSystemInfo = () => api.get('/system/info');
+
+// ==================== RELEASES & SCHEDULING ====================
+export const getScheduledReleases = () => api.get('/releases/scheduled');
+export const scheduleRelease = (data: any) => api.post('/releases/schedule', data);
+export const cancelScheduledRelease = (id: number) => api.post(`/releases/schedule/${id}/cancel`);
+
+// ==================== VIDEO DISTRIBUTION ====================
+export const getVideos = () => api.get('/videos');
+export const uploadVideo = (formData: FormData) => 
+  api.post('/videos/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const deleteVideo = (id: number) => api.delete(`/videos/${id}`);
+
+// ==================== LYRICS ====================
+export const uploadLyrics = (trackId: number, data: { lyrics: string, type: 'plain' | 'synced' }) => 
+  api.post(`/tracks/${trackId}/lyrics`, data);
+export const getLyrics = (trackId: number) => api.get(`/tracks/${trackId}/lyrics`);
+
+// ==================== PUBLISHING ====================
+export const getCompositions = () => api.get('/publishing/compositions');
+export const createComposition = (data: any) => api.post('/publishing/compositions', data);
+export const getPublishingRoyalties = () => api.get('/publishing/royalties');
+
+// ==================== LABEL & ARTISTS ====================
+export const getMyArtists = () => api.get('/artists/my');
+export const createArtist = (data: any) => api.post('/artists', data);
+export const switchArtist = (artistId: number) => api.post(`/artists/switch/${artistId}`);
+
+// ==================== SPOTLIGHT (PITCHING) ====================
+export const pitchToPlaylist = (trackId: number, playlistId: number, message: string) => 
+  api.post('/spotlight/pitch', { trackId, playlistId, message });
+export const getMyPitches = () => api.get('/spotlight/my-pitches');
+
+// ==================== SPOTIFY VERIFICATION ====================
+export const getSpotifyAuthUrl = () => api.get('/artists/spotify/auth');
+export const checkSpotifyStatus = () => api.get('/artists/spotify/status');
+
+// ==================== VAULT ====================
+export const getVaultFiles = () => api.get('/vault');
+export const uploadToVault = (formData: FormData) => 
+  api.post('/vault', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const deleteFromVault = (id: number) => api.delete(`/vault/${id}`);
+
+// ==================== RIAA CERTIFICATIONS ====================
+export const getRiaaCertifications = () => api.get('/riaa');
+
+// ==================== AI PROMOTION ====================
+export const generatePromotionalContent = (trackId: number, platform: string) => 
+  api.post('/marketing/generar-promocion', { track_id: trackId, platform });
+
+// ==================== PROMO REELS ====================
+export const generatePromoReel = (trackId: number, message: string) => 
+  api.post('/promo/reel', { track_id: trackId, message });
+
+// ==================== STORE MAXIMIZER ====================
+export const toggleAutoDistribute = (trackId: number, auto_distribute: boolean) => 
+  api.post(`/tracks/${trackId}/auto-distribute`, { auto_distribute });
+
+// ==================== YOUTUBE CONTENT ID ====================
+export const registerYoutubeContentId = (trackId: number) => 
+  api.post('/youtube/register', { track_id: trackId });
+export const getYoutubeRegistrations = () => api.get('/youtube/registrations');
+
+// ==================== LEAVE A LEGACY ====================
+export const activateLeaveALegacy = (trackId: number) => 
+  api.post(`/tracks/${trackId}/leave-a-legacy`);
 
 export default api;

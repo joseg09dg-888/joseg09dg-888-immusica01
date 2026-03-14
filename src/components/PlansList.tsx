@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import PlanCard from './PlanCard';
 import { Sparkles, MessageCircle } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 
 interface Plan {
   id: string;
@@ -14,6 +15,7 @@ interface Plan {
 }
 
 const PlansList: React.FC = () => {
+  const { t } = useTranslation();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
 
   const plans: Plan[] = [
@@ -72,7 +74,7 @@ const PlansList: React.FC = () => {
               billingCycle === 'monthly' ? 'bg-cyber-cyan text-ink shadow-lg shadow-cyber-cyan/20' : 'text-white/40 hover:text-white'
             }`}
           >
-            Monthly
+            {t('monthly')}
           </button>
           <button
             onClick={() => setBillingCycle('yearly')}
@@ -80,8 +82,8 @@ const PlansList: React.FC = () => {
               billingCycle === 'yearly' ? 'bg-cyber-cyan text-ink shadow-lg shadow-cyber-cyan/20' : 'text-white/40 hover:text-white'
             }`}
           >
-            Yearly
-            <span className="ml-2 text-[8px] opacity-60">Save 20%</span>
+            {t('yearly')}
+            <span className="ml-2 text-[8px] opacity-60">{t('save_percentage', { percentage: 20 })}</span>
           </button>
         </div>
       </div>
@@ -102,7 +104,7 @@ const PlansList: React.FC = () => {
         initial={{ opacity: 0, y: 40 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="glass-card p-12 text-center space-y-8 border-cyber-cyan/20 bg-gradient-to-br from-cyber-cyan/10 via-transparent to-neon-pink/5 relative overflow-hidden group"
+        className="glass-card p-8 sm:p-12 text-center space-y-8 border-cyber-cyan/20 bg-gradient-to-br from-cyber-cyan/10 via-transparent to-neon-pink/5 relative overflow-hidden group"
       >
         <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:32px_32px]" />
         <div className="absolute top-0 right-0 w-96 h-96 bg-cyber-cyan/10 blur-[100px] rounded-full -mr-48 -mt-48 group-hover:bg-cyber-cyan/20 transition-colors duration-1000" />
@@ -117,8 +119,7 @@ const PlansList: React.FC = () => {
             Neural <span className="text-white outline-text">Enterprise</span>
           </h3>
           <p className="text-white/40 text-base max-w-2xl mx-auto font-medium leading-relaxed">
-            Custom infrastructure for labels, collectives, and high-volume catalogs. 
-            Deploy your own neural distribution network.
+            {t('enterprise_desc')}
           </p>
         </div>
 
@@ -128,7 +129,7 @@ const PlansList: React.FC = () => {
             className="px-12 py-6 bg-cyber-cyan text-ink rounded-2xl font-black uppercase tracking-[0.4em] text-[10px] hover:scale-105 transition-all shadow-2xl shadow-cyber-cyan/20 flex items-center gap-4 group/btn"
           >
             <MessageCircle size={18} />
-            <span>Contact via WhatsApp</span>
+            <span>{t('contact_whatsapp')}</span>
             <div className="w-8 h-px bg-ink/20 group-hover/btn:w-12 transition-all" />
           </button>
         </div>
