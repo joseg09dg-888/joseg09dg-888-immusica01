@@ -18,8 +18,8 @@
   body {
     @apply bg-ink text-white antialiased selection:bg-electric-purple/30 selection:text-white overflow-x-hidden;
     background-image: 
-      radial-gradient(circle at 50% -20%, rgba(0, 240, 255, 0.08), transparent 50%),
-      radial-gradient(circle at 0% 100%, rgba(255, 0, 229, 0.05), transparent 40%);
+      radial-gradient(circle at 50% -20%, rgba(125, 60, 255, 0.1), transparent 50%),
+      radial-gradient(circle at 0% 100%, rgba(125, 60, 255, 0.05), transparent 40%);
     background-attachment: fixed;
   }
 

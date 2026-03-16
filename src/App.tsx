@@ -32,6 +32,9 @@ import Vault from './pages/Vault';
 import Riaa from './pages/Riaa';
 import SpotifyVerify from './pages/SpotifyVerify';
 import YoutubeCID from './pages/YoutubeCID';
+import Feedback from './pages/Feedback';
+import AdminRoute from './routes/AdminRoute';
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   return (
@@ -68,6 +71,12 @@ function App() {
           <Route path="/riaa" element={<Riaa />} />
           <Route path="/spotify-verify" element={<SpotifyVerify />} />
           <Route path="/youtube-cid" element={<YoutubeCID />} />
+          <Route path="/feedback" element={<Feedback />} />
+          <Route path="/admin/*" element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          } />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

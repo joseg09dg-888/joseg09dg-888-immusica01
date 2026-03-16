@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { getTracks, createTrack, updateTrack, deleteTrack, getTrackStats } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Music, Plus, Trash2, Edit2, Loader2, Play, 
   Pause, Upload, X, CheckCircle2, BarChart3, 
   TrendingUp, DollarSign, Globe, ArrowUpRight,
-  Activity, Sparkles, Clock, FileText, Languages, Video, Share2, Shield, Zap
+  Activity, Sparkles, Clock, FileText, Languages, Video, Share2, Shield, Zap, Database
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
@@ -14,6 +16,7 @@ import {
 } from '../services/api';
 
 const Catalog: React.FC = () => {
+  const { isAuthenticated, user } = useAuth();
   const [tracks, setTracks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -179,10 +182,10 @@ const Catalog: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyber-cyan/10 border border-cyber-cyan/20 text-cyber-cyan text-[10px] font-black uppercase tracking-widest"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-electric-purple/10 border border-electric-purple/20 text-electric-purple text-[10px] font-black uppercase tracking-widest"
             >
               <Sparkles size={12} className="animate-pulse" />
-              <span>Neural Asset Core</span>
+              <span>IM MUSIC Neural Core</span>
             </motion.div>
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
@@ -190,17 +193,26 @@ const Catalog: React.FC = () => {
               transition={{ delay: 0.1 }}
               className="text-6xl lg:text-9xl font-display font-black tracking-tighter uppercase leading-[0.85] italic"
             >
-              My <br />
-              <span className="text-cyber-cyan">Catalog</span>
+              IM MUSIC <br />
+              <span className="text-electric-purple">Catalog</span>
             </motion.h1>
           </div>
-          <button 
-            onClick={() => { setEditingTrack(null); setIsModalOpen(true); }}
-            className="px-10 py-5 bg-cyber-cyan text-ink rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3 hover:scale-105 transition-all shadow-xl shadow-cyber-cyan/20"
-          >
-            <Plus size={16} />
-            Add New Track
-          </button>
+          <div className="flex flex-wrap items-center gap-4">
+            <Link 
+              to="/migration"
+              className="px-10 py-5 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3 transition-all border border-white/10"
+            >
+              <Database size={16} />
+              Migrate Catalog
+            </Link>
+            <button 
+              onClick={() => { setEditingTrack(null); setIsModalOpen(true); }}
+              className="px-10 py-5 bg-cyber-cyan text-ink rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center gap-3 hover:scale-105 transition-all shadow-xl shadow-cyber-cyan/20"
+            >
+              <Plus size={16} />
+              Add New Track
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-6">

@@ -2,10 +2,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../contexts/AuthContext';
 import { Zap, ShieldCheck, BarChart3, Users, Rocket, ArrowRight, Play, Globe, Sparkles, ShoppingBag, Music, DollarSign } from 'lucide-react';
 
 const Home: React.FC = () => {
   const { t } = useTranslation();
+  const { user, isAuthenticated } = useAuth();
 
   return (
     <div className="min-h-screen bg-ink overflow-hidden">
@@ -15,6 +17,30 @@ const Home: React.FC = () => {
         <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px] pointer-events-none" />
         <div className="absolute inset-0 bg-gradient-to-b from-ink via-transparent to-ink pointer-events-none" />
         
+        {/* Floating Particles/Nodes */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(20)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ 
+                x: Math.random() * 100 + '%', 
+                y: Math.random() * 100 + '%',
+                opacity: 0 
+              }}
+              animate={{ 
+                y: [null, '-=100'],
+                opacity: [0, 0.3, 0]
+              }}
+              transition={{ 
+                duration: Math.random() * 10 + 10, 
+                repeat: Infinity,
+                delay: Math.random() * 5
+              }}
+              className="absolute w-1 h-1 bg-cyber-cyan rounded-full"
+            />
+          ))}
+        </div>
+
         {/* Moving Scanline */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
           <div className="w-full h-1 bg-cyber-cyan/30 blur-sm animate-scanline" />
@@ -59,7 +85,7 @@ const Home: React.FC = () => {
                 className="text-[12vw] sm:text-[10vw] lg:text-[12vw] font-display font-black tracking-tighter leading-[0.9] sm:leading-[0.85] uppercase italic mix-blend-difference"
               >
                 {t('home.hero_title')} <br />
-                <span className="text-white outline-text-thick animate-glitch">{t('home.hero_subtitle')}</span>
+                <span className="text-electric-purple outline-text-thick animate-glitch">{t('home.hero_subtitle')}</span>
               </motion.h1>
               
               {/* Floating Badge */}
@@ -70,9 +96,9 @@ const Home: React.FC = () => {
                   scale: [1, 1.1, 1]
                 }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-8 -right-2 sm:-top-12 sm:right-4 lg:right-20 px-3 py-1 lg:px-8 lg:py-3 bg-neon-pink text-ink text-[6px] lg:text-[10px] font-black uppercase tracking-widest rounded-full shadow-[0_0_40px_rgba(255,0,110,0.5)] -rotate-12 z-20"
+                className="absolute -top-8 -right-2 sm:-top-12 sm:right-4 lg:right-20 px-3 py-1 lg:px-8 lg:py-3 bg-electric-purple text-white text-[6px] lg:text-[10px] font-black uppercase tracking-widest rounded-full shadow-[0_0_40px_rgba(125,60,255,0.5)] -rotate-12 z-20"
               >
-                SYSTEM ONLINE
+                NEURAL CORE ONLINE
               </motion.div>
             </div>
 
@@ -94,6 +120,18 @@ const Home: React.FC = () => {
               </div>
               
               <div className="flex flex-col sm:flex-row items-center gap-8">
+                {isAuthenticated && (user?.role === 'ai_operator' || user?.role === 'admin' || user?.email?.toLowerCase() === 'joseg09.dg@gmail.com') && (
+                  <Link 
+                    to="/admin" 
+                    className="group relative px-12 py-6 bg-electric-purple text-white rounded-full font-black uppercase tracking-[0.2em] text-xs overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-electric-purple/20"
+                  >
+                    <span className="relative z-10 flex items-center gap-2">
+                      <ShieldCheck size={16} />
+                      Admin Console
+                    </span>
+                    <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
+                  </Link>
+                )}
                 <Link to="/plans" className="group relative px-12 py-6 bg-white text-ink rounded-full font-black uppercase tracking-[0.2em] text-xs overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-white/10">
                   <span className="relative z-10">{t('home.get_started')}</span>
                   <div className="absolute inset-0 bg-cyber-cyan translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
@@ -272,11 +310,22 @@ const Home: React.FC = () => {
       {/* Footer */}
       <footer className="py-20 px-6 border-t border-white/5">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
-              <Rocket size={16} />
+            <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center relative overflow-hidden">
+              {/* Fallback CSS Logo */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center leading-none bg-white">
+                <span className="text-ink font-black text-[10px]">IM</span>
+              </div>
+              {/* Uploaded Logo (if exists) */}
+              <img 
+                src="/logo.png" 
+                alt="IM MUSIC" 
+                className="absolute inset-0 w-full h-full object-contain z-10"
+                onError={(e) => (e.currentTarget.style.display = 'none')}
+                referrerPolicy="no-referrer"
+              />
             </div>
-            <span className="font-display font-black uppercase tracking-tighter">Elite Rebellion</span>
+            <span className="font-display font-black uppercase tracking-tighter">IM MUSIC</span>
           </div>
           
           <div className="flex gap-12">
@@ -288,7 +337,7 @@ const Home: React.FC = () => {
           </div>
 
           <p className="text-[10px] font-black uppercase tracking-widest text-white/10">
-            © 2026 Elite Rebellion. All Rights Reserved.
+            © 2026 IM MUSIC. All Rights Reserved.
           </p>
         </div>
       </footer>

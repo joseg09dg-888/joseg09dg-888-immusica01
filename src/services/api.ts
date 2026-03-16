@@ -210,4 +210,53 @@ export const getYoutubeRegistrations = () => api.get('/youtube/registrations');
 export const activateLeaveALegacy = (trackId: number) => 
   api.post(`/tracks/${trackId}/leave-a-legacy`);
 
+// ==================== OPENCLAW ADMIN ====================
+
+// Obtener mensajes del buzón
+export const getInboxMessages = (status?: string, limit?: number) => {
+  const params = new URLSearchParams();
+  if (status) params.append('status', status);
+  if (limit) params.append('limit', limit.toString());
+  return api.get(`/openclaw/inbox?${params.toString()}`);
+};
+
+// Marcar mensaje como procesado
+export const processInboxMessage = (id: number, status: string, taskId?: number) => 
+  api.put(`/openclaw/inbox/${id}/process`, { status, taskId });
+
+// Obtener logs del sistema
+export const getSystemLogs = (lines?: number) => {
+  const params = new URLSearchParams();
+  if (lines) params.append('lines', lines.toString());
+  return api.get(`/openclaw/logs?${params.toString()}`);
+};
+
+// Obtener estado de recursos
+export const getResourceStatus = () => api.get('/openclaw/resources');
+
+// Crear rama en GitHub (simulado)
+export const createGitHubBranch = (branchName: string, baseBranch?: string, filePath?: string, content?: string, commitMessage?: string) =>
+  api.post('/openclaw/github/branch', { branchName, baseBranch, filePath, content, commitMessage });
+
+// Probar ngrok
+export const testNgrok = (port?: number, subdomain?: string) =>
+  api.post('/openclaw/ngrok/test', { port, subdomain });
+
+// Obtener configuración de IA
+export const getAiConfig = () => api.get('/openclaw/config');
+
+// Activar/desactivar emergencia
+export const setEmergencyStop = (stop: boolean) =>
+  api.post('/openclaw/emergency', { stop });
+
+// Obtener tareas pendientes
+export const getPendingTasks = () => api.get('/openclaw/tasks');
+
+// Actualizar tarea
+export const updateTask = (id: number, data: any) => api.put(`/openclaw/tasks/${id}`, data);
+
+// Enviar notificación
+export const sendNotification = (channel: string, recipient: string, message: string) =>
+  api.post('/openclaw/notify', { channel, recipient, message });
+
 export default api;

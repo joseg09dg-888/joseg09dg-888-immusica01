@@ -48,6 +48,14 @@ const Navbar: React.FC = () => {
         { label: t('nav.artists'), path: '/artists', icon: Users, protected: true },
         { label: t('nav.ai_chat'), path: '/ai-chat', icon: Sparkles, protected: true },
         { label: t('nav.community'), path: '/chat', icon: MessageSquare, protected: true },
+        { label: t('nav.feedback'), path: '/feedback', icon: MessageSquare, protected: true },
+        { 
+          label: 'Admin', 
+          path: '/admin', 
+          icon: ShieldCheck, 
+          protected: true,
+          visible: isAuthenticated && (user?.role === 'ai_operator' || user?.role === 'admin' || user?.email?.toLowerCase() === 'joseg09.dg@gmail.com')
+        },
       ]
     },
     {
@@ -96,12 +104,24 @@ const Navbar: React.FC = () => {
         }`}>
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 bg-cyber-cyan rounded-xl flex items-center justify-center shadow-lg shadow-cyber-cyan/20 group-hover:scale-110 transition-transform">
-              <Rocket className="text-ink" size={20} />
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-white/5 group-hover:scale-110 transition-transform overflow-hidden relative">
+              {/* Fallback CSS Logo */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center leading-none bg-white">
+                <span className="text-ink font-black text-xl tracking-tighter">IM</span>
+                <span className="text-ink font-bold text-[6px] tracking-[0.2em] uppercase">Music</span>
+              </div>
+              {/* Uploaded Logo (if exists) */}
+              <img 
+                src="/logo.png" 
+                alt="IM MUSIC" 
+                className="absolute inset-0 w-full h-full object-contain z-10"
+                onError={(e) => (e.currentTarget.style.display = 'none')}
+                referrerPolicy="no-referrer"
+              />
             </div>
             <div className="flex flex-col">
-              <span className="text-base sm:text-lg font-display font-black tracking-tighter leading-none uppercase">Elite</span>
-              <span className="text-[8px] sm:text-[10px] font-black tracking-[0.2em] sm:tracking-[0.3em] text-cyber-cyan uppercase leading-none">Rebellion</span>
+              <span className="text-base sm:text-lg font-display font-black tracking-tighter leading-none uppercase">IM MUSIC</span>
+              <span className="text-[8px] sm:text-[10px] font-black tracking-[0.2em] sm:tracking-[0.3em] text-electric-purple uppercase leading-none">Neural Network</span>
             </div>
           </Link>
 
@@ -109,6 +129,7 @@ const Navbar: React.FC = () => {
           <div className="hidden lg:flex items-center gap-2">
             {navGroups[0].items?.map((item) => {
               if (item.protected && !isAuthenticated) return null;
+              if (item.visible === false) return null;
               return (
                 <Link
                   key={item.path}
@@ -298,10 +319,24 @@ const Navbar: React.FC = () => {
             <div className="relative h-full flex flex-col p-8">
               <div className="flex justify-between items-center mb-12">
                 <Link to="/" onClick={() => setIsOpen(false)} className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-cyber-cyan rounded-xl flex items-center justify-center">
-                    <Rocket className="text-ink" size={20} />
+                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center relative overflow-hidden">
+                    {/* Fallback CSS Logo */}
+                    <div className="absolute inset-0 flex items-center justify-center bg-white">
+                      <span className="text-ink font-black text-lg">IM</span>
+                    </div>
+                    {/* Uploaded Logo (if exists) */}
+                    <img 
+                      src="/logo.png" 
+                      alt="IM MUSIC" 
+                      className="absolute inset-0 w-full h-full object-contain z-10"
+                      onError={(e) => (e.currentTarget.style.display = 'none')}
+                      referrerPolicy="no-referrer"
+                    />
                   </div>
-                  <span className="text-lg font-display font-black tracking-tighter uppercase">Elite Rebellion</span>
+                  <div className="flex flex-col">
+                    <span className="text-lg font-display font-black tracking-tighter uppercase leading-none">IM MUSIC</span>
+                    <span className="text-[8px] font-black tracking-[0.2em] text-electric-purple uppercase leading-none">Neural Network</span>
+                  </div>
                 </Link>
                 <button onClick={() => setIsOpen(false)} className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
                   <X size={20} />
@@ -332,6 +367,7 @@ const Navbar: React.FC = () => {
                     <div className="grid gap-2">
                       {group.items?.map((item) => {
                         if (item.protected && !isAuthenticated) return null;
+                        if (item.visible === false) return null;
                         return (
                           <Link
                             key={item.path}
@@ -339,7 +375,7 @@ const Navbar: React.FC = () => {
                             onClick={() => setIsOpen(false)}
                             className={`p-6 rounded-2xl flex items-center gap-6 transition-all ${
                               isActive(item.path)
-                                ? 'bg-cyber-cyan text-ink'
+                                ? 'bg-electric-purple text-white'
                                 : 'bg-white/5 text-white/60'
                             }`}
                           >

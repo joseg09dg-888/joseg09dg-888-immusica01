@@ -30,6 +30,25 @@
   "view_dashboard": "Ver Dashboard",
   "choose_rebellion": "Elige tu Rebelión",
   "plans_desc": "Escala tu carrera musical con herramientas neurales de élite e infraestructura de distribución global.",
+  "feedback": {
+    "title": "Feedback y Sugerencias",
+    "submit": "Enviar Feedback",
+    "type": "Tipo",
+    "suggestion": "Sugerencia",
+    "bug": "Error (Bug)",
+    "feature_request": "Nueva Funcionalidad",
+    "subject": "Asunto",
+    "description": "Descripción",
+    "status": "Estado",
+    "pending": "Pendiente",
+    "reviewing": "En Revisión",
+    "implemented": "Implementado",
+    "rejected": "Rechazado",
+    "admin_notes": "Notas del Administrador",
+    "my_history": "Mi Historial de Feedback",
+    "success_submit": "Feedback enviado correctamente. ¡Gracias por ayudarnos a mejorar!",
+    "no_feedback": "Aún no has enviado feedback."
+  },
   "nav": {
     "dashboard": "Dashboard",
     "catalog": "Catálogo",
@@ -39,6 +58,20 @@
     "community": "Comunidad",
     "services": "Servicios",
     "plans": "Planes",
-    "connect": "Conectar"
+    "connect": "Conectar",
+    "feedback": "Feedback"
+  },
+  "admin": {
+    "inbox": "Buzón de Entrada",
+    "logs": "Logs",
+    "tasks": "Tareas",
+    "config": "Configuración",
+    "dashboard": "Panel de Administración"
+  },
+  "home": {
+    "hero_title": "EL FUTURO DE LA",
+    "hero_subtitle": "MÚSICA NEURAL",
+    "hero_desc": "Distribución de élite, marketing y gestión de regalías impulsada por inteligencia artificial. Toma el control de tu carrera.",
+    "get_started": "Comenzar Ahora"
   }
 }

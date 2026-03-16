@@ -36,10 +36,10 @@ const Dashboard: React.FC = () => {
       desc: 'Secure backup for masters & assets.', 
       path: '/vault', 
       icon: Database, 
-      color: 'text-cyber-cyan',
-      bg: 'bg-cyber-cyan/10',
+      color: 'text-electric-purple',
+      bg: 'bg-electric-purple/10',
       size: 'lg',
-      accent: 'from-cyber-cyan/20 to-transparent'
+      accent: 'from-electric-purple/20 to-transparent'
     },
     { 
       title: 'Marketing & AI', 
@@ -86,10 +86,10 @@ const Dashboard: React.FC = () => {
       desc: 'Real-time streams & revenue analytics.', 
       path: '/stats', 
       icon: BarChart3, 
-      color: 'text-cyber-cyan',
-      bg: 'bg-cyber-cyan/10',
+      color: 'text-electric-purple',
+      bg: 'bg-electric-purple/10',
       size: 'md',
-      accent: 'from-cyber-cyan/20 to-transparent'
+      accent: 'from-electric-purple/20 to-transparent'
     },
     { 
       title: 'Neural Wallet', 
@@ -116,7 +116,7 @@ const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen pt-32 pb-20 px-6 bg-ink relative overflow-hidden">
       {/* Background Elements */}
-      <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-cyber-cyan/5 blur-[150px] rounded-full -mr-96 -mt-96 animate-pulse-glow" />
+      <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-electric-purple/5 blur-[150px] rounded-full -mr-96 -mt-96 animate-pulse-glow" />
       <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-neon-pink/5 blur-[150px] rounded-full -ml-96 -mb-96 animate-pulse-glow" />
 
       <div className="max-w-7xl mx-auto space-y-16 relative z-10">
@@ -128,7 +128,7 @@ const Dashboard: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               className="flex items-center gap-4"
             >
-              <div className="px-4 py-1.5 bg-cyber-cyan/10 text-cyber-cyan text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-cyber-cyan/20 flex items-center gap-2">
+              <div className="px-4 py-1.5 bg-electric-purple/10 text-electric-purple text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-electric-purple/20 flex items-center gap-2">
                 <Activity size={12} className="animate-pulse" />
                 <span>{t('dashboard.core_online')}</span>
               </div>
@@ -152,9 +152,9 @@ const Dashboard: React.FC = () => {
           >
             <div className="text-right space-y-1">
               <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] text-white/20">{t('dashboard.current_tier')}</p>
-              <p className="text-base sm:text-xl font-display font-black text-cyber-cyan italic uppercase tracking-tight">Elite Rebellion Pro</p>
+              <p className="text-base sm:text-xl font-display font-black text-electric-purple italic uppercase tracking-tight">IM MUSIC Neural Pro</p>
             </div>
-            <Link to="/plans" className="w-16 h-16 rounded-[24px] bg-cyber-cyan text-ink flex items-center justify-center hover:scale-110 transition-all shadow-xl shadow-cyber-cyan/20 group">
+            <Link to="/plans" className="w-16 h-16 rounded-[24px] bg-electric-purple text-white flex items-center justify-center hover:scale-110 transition-all shadow-xl shadow-electric-purple/20 group">
               <Zap size={24} className="group-hover:fill-current" />
             </Link>
           </motion.div>
@@ -213,16 +213,16 @@ const Dashboard: React.FC = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4 }}
-            className="lg:col-span-2 glass-card p-6 sm:p-10 flex flex-col justify-between bg-gradient-to-br from-cyber-cyan/10 to-transparent border-cyber-cyan/20 relative overflow-hidden group"
+            className="lg:col-span-2 glass-card p-6 sm:p-10 flex flex-col justify-between bg-gradient-to-br from-electric-purple/10 to-transparent border-electric-purple/20 relative overflow-hidden group"
           >
-            <div className="absolute top-0 right-0 w-64 h-64 bg-cyber-cyan/10 blur-[60px] rounded-full -mr-32 -mt-32 group-hover:bg-cyber-cyan/20 transition-colors" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-electric-purple/10 blur-[60px] rounded-full -mr-32 -mt-32 group-hover:bg-electric-purple/20 transition-colors" />
             
             <div className="flex items-center justify-between mb-12 relative z-10">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-cyber-cyan/20 flex items-center justify-center text-cyber-cyan">
+                <div className="w-10 h-10 rounded-xl bg-electric-purple/20 flex items-center justify-center text-electric-purple">
                   <Activity size={20} />
                 </div>
-                <h3 className="text-sm font-black uppercase tracking-[0.3em] text-cyber-cyan italic">{t('dashboard.performance')}</h3>
+                <h3 className="text-sm font-black uppercase tracking-[0.3em] text-electric-purple italic">{t('dashboard.performance')}</h3>
               </div>
               <div className="flex items-center gap-2 px-3 py-1 bg-emerald-400/10 text-emerald-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-emerald-400/20">
                 <TrendingUp size={12} />
@@ -244,7 +244,7 @@ const Dashboard: React.FC = () => {
                     initial={{ width: 0 }}
                     animate={{ width: '75%' }}
                     transition={{ duration: 1.5, ease: "easeOut" }}
-                    className="h-full bg-cyber-cyan shadow-[0_0_10px_rgba(0,243,255,0.5)]" 
+                    className="h-full bg-electric-purple shadow-[0_0_10px_rgba(168,85,247,0.5)]" 
                   />
                 </div>
               </div>

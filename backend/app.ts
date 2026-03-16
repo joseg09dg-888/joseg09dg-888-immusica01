@@ -34,9 +34,11 @@ import publishingRoutes from './routes/publishingRoutes';
 import videoRoutes from './routes/videoRoutes';
 import lyricsRoutes from './routes/lyricsRoutes';
 import playlistRoutes from './routes/playlistRoutes';
+import feedbackRoutes from './routes/feedbackRoutes';
 import { upload } from './middleware/upload';
 import { authenticate } from './middleware/auth';
 import db from './config/database';
+import { initFeedbackTable } from './models/Feedback';
 
 import { runJobs } from './utils/jobs';
 
@@ -59,6 +61,9 @@ async function startServer() {
   });
 
   const PORT = parseInt(process.env.PORT || '3000', 10);
+
+  // Initialize tables
+  initFeedbackTable();
 
   app.set('trust proxy', 1);
   app.use(helmet({ contentSecurityPolicy: false }));
@@ -96,6 +101,7 @@ async function startServer() {
   app.use('/api/videos', videoRoutes);
   app.use('/api/lyrics', lyricsRoutes);
   app.use('/api/playlists', playlistRoutes);
+  app.use('/api/feedback', feedbackRoutes);
 
   // Socket.io Community Chat
   io.on('connection', (socket) => {

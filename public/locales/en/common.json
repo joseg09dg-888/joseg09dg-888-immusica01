@@ -30,6 +30,25 @@
   "view_dashboard": "View Dashboard",
   "choose_rebellion": "Choose Your Rebellion",
   "plans_desc": "Scale your music career with elite neural tools and global distribution infrastructure.",
+  "feedback": {
+    "title": "Feedback & Suggestions",
+    "submit": "Submit Feedback",
+    "type": "Type",
+    "suggestion": "Suggestion",
+    "bug": "Bug",
+    "feature_request": "Feature Request",
+    "subject": "Subject",
+    "description": "Description",
+    "status": "Status",
+    "pending": "Pending",
+    "reviewing": "Reviewing",
+    "implemented": "Implemented",
+    "rejected": "Rejected",
+    "admin_notes": "Admin Notes",
+    "my_history": "My Feedback History",
+    "success_submit": "Feedback submitted successfully. Thank you for helping us improve!",
+    "no_feedback": "You haven't submitted any feedback yet."
+  },
   "nav": {
     "dashboard": "Dashboard",
     "catalog": "Catalog",
@@ -39,6 +58,20 @@
     "community": "Community",
     "services": "Services",
     "plans": "Plans",
-    "connect": "Connect"
+    "connect": "Connect",
+    "feedback": "Feedback"
+  },
+  "admin": {
+    "inbox": "Inbox",
+    "logs": "Logs",
+    "tasks": "Tasks",
+    "config": "Configuration",
+    "dashboard": "Admin Dashboard"
+  },
+  "home": {
+    "hero_title": "THE FUTURE OF",
+    "hero_subtitle": "NEURAL MUSIC",
+    "hero_desc": "Elite distribution, marketing, and royalty management powered by artificial intelligence. Take control of your career.",
+    "get_started": "Get Started"
   }
 }

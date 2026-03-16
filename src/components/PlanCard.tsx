@@ -70,8 +70,8 @@ const PlanCard: React.FC<Props> = ({ plan, billingCycle, index }) => {
       <div className={`absolute inset-0 bg-gradient-to-br ${isPremium ? 'from-cyber-cyan/10 to-transparent' : 'from-white/5 to-transparent'} opacity-0 group-hover:opacity-100 transition-opacity duration-700`} />
       
       {isPremium && (
-        <div className="absolute top-0 right-0 bg-cyber-cyan text-ink px-6 py-2 rounded-bl-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-cyber-cyan/20 z-20">
-          Elite Rebellion
+        <div className="absolute top-0 right-0 bg-electric-purple text-white px-6 py-2 rounded-bl-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-electric-purple/20 z-20">
+          IM MUSIC
         </div>
       )}
       
