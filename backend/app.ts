@@ -2,13 +2,17 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from "vite";
+import morgan from 'morgan';
 
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+
+import { config } from './config/config';
+import { logger } from './utils/logger';
+import { errorHandler } from './middleware/errorHandler';
 
 import authRoutes from './routes/authRoutes';
 import artistRoutes from './routes/artistRoutes';
@@ -42,8 +46,6 @@ import { initFeedbackTable } from './models/Feedback';
 
 import { runJobs } from './utils/jobs';
 
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -55,20 +57,23 @@ async function startServer() {
   const httpServer = createServer(app);
   const io = new Server(httpServer, {
     cors: {
-      origin: "*",
+      origin: config.corsOrigin,
       methods: ["GET", "POST"]
     }
   });
-
-  const PORT = parseInt(process.env.PORT || '3000', 10);
 
   // Initialize tables
   initFeedbackTable();
 
   app.set('trust proxy', 1);
   app.use(helmet({ contentSecurityPolicy: false }));
-  app.use(cors());
+  app.use(cors({ origin: config.corsOrigin }));
   app.use(express.json());
+  
+  // Request logging
+  app.use(morgan(config.nodeEnv === 'development' ? 'dev' : 'combined', {
+    stream: { write: (message) => logger.info(message.trim()) }
+  }));
 
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -77,6 +82,12 @@ async function startServer() {
   });
   app.use('/api', limiter);
 
+  // Health check
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', message: 'Servidor funcionando', env: config.nodeEnv });
+  });
+
+  // API Routes
   app.use('/api/auth', authRoutes);
   app.use('/api/artists', artistRoutes);
   app.use('/api/royalties', royaltyRoutes);
@@ -105,7 +116,7 @@ async function startServer() {
 
   // Socket.io Community Chat
   io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
+    logger.info(`User connected: ${socket.id}`);
 
     socket.on('join_community', () => {
       socket.join('community_room');
@@ -124,7 +135,7 @@ async function startServer() {
     });
 
     socket.on('disconnect', () => {
-      console.log('User disconnected');
+      logger.info('User disconnected');
     });
   });
 
@@ -133,12 +144,11 @@ async function startServer() {
     res.json({ url: req.file.path, public_id: req.file.filename });
   });
 
-  app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Servidor funcionando' });
-  });
+  // Global Error Handler
+  app.use(errorHandler);
 
   // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
+  if (config.nodeEnv !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -151,9 +161,26 @@ async function startServer() {
     });
   }
 
-  httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  const server = httpServer.listen(config.port, '0.0.0.0', () => {
+    logger.info(`Servidor corriendo en http://localhost:${config.port} en modo ${config.nodeEnv}`);
   });
+
+  // Graceful shutdown
+  const shutdown = () => {
+    logger.info('Shutting down server...');
+    server.close(() => {
+      logger.info('Server closed');
+      db.close();
+      logger.info('Database connection closed');
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
 
-startServer();
+startServer().catch(err => {
+  logger.error('Failed to start server', err);
+  process.exit(1);
+});

@@ -69,3 +69,15 @@ export const getMyPitches = (req: AuthRequest, res: Response) => {
   
   res.json(pitches);
 };
+
+export const getAuditLogs = (req: AuthRequest, res: Response) => {
+  const limit = parseInt(req.query.limit as string) || 100;
+  const logs = db.prepare(`
+    SELECT al.*, u.name as user_name, u.email as user_email
+    FROM audit_logs al
+    LEFT JOIN users u ON al.user_id = u.id
+    ORDER BY al.created_at DESC
+    LIMIT ?
+  `).all(limit);
+  res.json(logs);
+};

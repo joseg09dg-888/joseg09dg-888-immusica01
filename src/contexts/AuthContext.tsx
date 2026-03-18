@@ -12,6 +12,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: () => void;
+  loginWithEmail: (email: string, password: string) => Promise<void>;
   logout: () => void;
   handleAuthCallback: (code: string) => Promise<void>;
   isAuthenticated: boolean;
@@ -36,6 +37,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.location.href = `${api.defaults.baseURL}/auth/login`;
   };
 
+  const loginWithEmail = async (email: string, password: string) => {
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      const { token, user } = response.data;
+      localStorage.setItem('im_music_token', token);
+      setToken(token);
+      setUser(user);
+    } catch (error) {
+      console.error('Error en login:', error);
+      throw error;
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('im_music_token');
     setToken(null);
@@ -55,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, handleAuthCallback, isAuthenticated: !!token }}>
+    <AuthContext.Provider value={{ user, token, login, loginWithEmail, logout, handleAuthCallback, isAuthenticated: !!token }}>
       {children}
     </AuthContext.Provider>
   );

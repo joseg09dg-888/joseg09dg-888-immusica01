@@ -287,12 +287,20 @@ const Navbar: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={login}
-                className="px-8 py-3 bg-white text-ink rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-white/10"
-              >
-                {t('nav.connect')}
-              </button>
+              <div className="flex items-center gap-4">
+                <Link
+                  to="/login"
+                  className="px-6 py-3 bg-white/5 text-white border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                >
+                  Admin Console
+                </Link>
+                <button
+                  onClick={login}
+                  className="px-8 py-3 bg-white text-ink rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-white/10"
+                >
+                  {t('nav.connect')}
+                </button>
+              </div>
             )}
           </div>
 

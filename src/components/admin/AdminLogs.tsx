@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { getSystemLogs, getResourceStatus } from '../../services/api';
-import { Terminal, Activity, Cpu, HardDrive } from 'lucide-react';
+import { getSystemLogs, getResourceStatus, getAuditLogs } from '../../services/api';
+import { Terminal, Activity, Cpu, HardDrive, Shield } from 'lucide-react';
 
 const AdminLogs: React.FC = () => {
   const [logs, setLogs] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [resources, setResources] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getSystemLogs(100), getResourceStatus()])
-      .then(([logsRes, resourcesRes]) => {
+    Promise.all([getSystemLogs(100), getResourceStatus(), getAuditLogs(100)])
+      .then(([logsRes, resourcesRes, auditRes]) => {
         setLogs(Array.isArray(logsRes.data.actionLogs) ? logsRes.data.actionLogs : []);
         setResources(resourcesRes.data);
+        setAuditLogs(Array.isArray(auditRes.data) ? auditRes.data : []);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -80,6 +82,57 @@ const AdminLogs: React.FC = () => {
               <div className="text-xl font-display font-black italic">{resources?.db?.size || '0KB'}</div>
               <div className="text-[8px] font-black uppercase tracking-widest text-white/20">Size</div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        <h2 className="text-2xl font-display font-black uppercase tracking-tighter italic flex items-center gap-3">
+          <Shield className="text-cyber-cyan" size={24} />
+          Audit Logs (User Actions)
+        </h2>
+
+        <div className="glass-card overflow-hidden border-white/10 bg-black/40">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-white/10 bg-white/5">
+                  <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">Usuario</th>
+                  <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">Acción</th>
+                  <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">Entidad</th>
+                  <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">IP</th>
+                  <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">Fecha</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5 font-mono text-[11px]">
+                {auditLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="p-12 text-center text-white/20 uppercase font-black tracking-widest">
+                      No hay logs de auditoría registrados
+                    </td>
+                  </tr>
+                ) : (
+                  auditLogs.map(log => (
+                    <tr key={log.id} className="hover:bg-white/5 transition-colors">
+                      <td className="p-4">
+                        <div className="font-bold text-white">{log.user_name || 'System'}</div>
+                        <div className="text-[9px] text-white/20">{log.user_email || '-'}</div>
+                      </td>
+                      <td className="p-4">
+                        <span className="text-cyber-cyan font-bold">{log.action}</span>
+                      </td>
+                      <td className="p-4 text-white/60">
+                        {log.entity_type} {log.entity_id ? `#${log.entity_id}` : ''}
+                      </td>
+                      <td className="p-4 text-white/40">{log.ip_address}</td>
+                      <td className="p-4 text-white/30">
+                        {new Date(log.created_at).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

@@ -132,6 +132,18 @@ const Home: React.FC = () => {
                     <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
                   </Link>
                 )}
+                {!isAuthenticated && (
+                  <Link 
+                    to="/login" 
+                    className="group relative px-12 py-6 bg-white/5 text-white rounded-full font-black uppercase tracking-[0.2em] text-xs overflow-hidden transition-all hover:scale-105 active:scale-95 border border-white/10"
+                  >
+                    <span className="relative z-10 flex items-center gap-2">
+                      <ShieldCheck size={16} />
+                      Admin Login
+                    </span>
+                    <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
+                  </Link>
+                )}
                 <Link to="/plans" className="group relative px-12 py-6 bg-white text-ink rounded-full font-black uppercase tracking-[0.2em] text-xs overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-white/10">
                   <span className="relative z-10">{t('home.get_started')}</span>
                   <div className="absolute inset-0 bg-cyber-cyan translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />

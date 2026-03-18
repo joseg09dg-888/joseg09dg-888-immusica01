@@ -33,6 +33,7 @@ import Riaa from './pages/Riaa';
 import SpotifyVerify from './pages/SpotifyVerify';
 import YoutubeCID from './pages/YoutubeCID';
 import Feedback from './pages/Feedback';
+import Login from './pages/Login';
 import AdminRoute from './routes/AdminRoute';
 import AdminDashboard from './pages/AdminDashboard';
 
@@ -44,6 +45,7 @@ function App() {
         <Navbar />
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/spotify/callback" element={<SpotifyCallback />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/plans" element={<Plans />} />

@@ -8,9 +8,12 @@ const __dirname = path.dirname(__filename);
 const dbPath = process.env.DATABASE_URL || path.join(__dirname, '../../music_platform.db');
 const db = new Database(dbPath);
 
+db.pragma('journal_mode = WAL');
+db.pragma('synchronous = NORMAL');
 db.pragma('foreign_keys = ON');
 
 db.exec(`
+  -- Existing tables...
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT UNIQUE NOT NULL,
@@ -19,6 +22,7 @@ db.exec(`
     role TEXT DEFAULT 'artist',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+  CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
   CREATE TABLE IF NOT EXISTS artists (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,6 +38,7 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
   );
+  CREATE INDEX IF NOT EXISTS idx_artists_user_id ON artists(user_id);
 
   CREATE TABLE IF NOT EXISTS tracks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,6 +55,8 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(artist_id) REFERENCES artists(id) ON DELETE CASCADE
   );
+  CREATE INDEX IF NOT EXISTS idx_tracks_artist_id ON tracks(artist_id);
+  CREATE INDEX IF NOT EXISTS idx_tracks_status ON tracks(status);
 
   CREATE TABLE IF NOT EXISTS vault_files (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,48 +68,7 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(artist_id) REFERENCES artists(id) ON DELETE CASCADE
   );
-
-  CREATE TABLE IF NOT EXISTS riaa_certifications (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    artist_id INTEGER NOT NULL,
-    type TEXT NOT NULL, -- Gold, Platinum, Diamond
-    threshold INTEGER NOT NULL,
-    achieved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(artist_id) REFERENCES artists(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS store_distributions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    track_id INTEGER NOT NULL,
-    platform TEXT NOT NULL,
-    status TEXT DEFAULT 'pending',
-    distributed_at DATETIME,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(track_id) REFERENCES tracks(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS youtube_content_id (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    track_id INTEGER NOT NULL,
-    registration_id TEXT UNIQUE NOT NULL,
-    status TEXT DEFAULT 'active',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(track_id) REFERENCES tracks(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS campaigns (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    artist_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    description TEXT,
-    budget REAL,
-    platform TEXT,
-    status TEXT DEFAULT 'active',
-    start_date TEXT,
-    end_date TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(artist_id) REFERENCES artists(id) ON DELETE CASCADE
-  );
+  CREATE INDEX IF NOT EXISTS idx_vault_artist_id ON vault_files(artist_id);
 
   CREATE TABLE IF NOT EXISTS royalties (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -118,6 +84,8 @@ db.exec(`
     FOREIGN KEY(artist_id) REFERENCES artists(id) ON DELETE CASCADE,
     FOREIGN KEY(track_id) REFERENCES tracks(id) ON DELETE SET NULL
   );
+  CREATE INDEX IF NOT EXISTS idx_royalties_artist_id ON royalties(artist_id);
+  CREATE INDEX IF NOT EXISTS idx_royalties_track_id ON royalties(track_id);
 
   CREATE TABLE IF NOT EXISTS daily_stats (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -130,6 +98,23 @@ db.exec(`
     UNIQUE(track_id, fecha, plataforma),
     FOREIGN KEY(track_id) REFERENCES tracks(id) ON DELETE CASCADE
   );
+  CREATE INDEX IF NOT EXISTS idx_daily_stats_track_id ON daily_stats(track_id);
+
+  CREATE TABLE IF NOT EXISTS audit_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    action TEXT NOT NULL,
+    entity_type TEXT,
+    entity_id INTEGER,
+    details TEXT,
+    ip_address TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
+  CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+  CREATE INDEX IF NOT EXISTS idx_daily_stats_track_id ON daily_stats(track_id);
+  CREATE INDEX IF NOT EXISTS idx_daily_stats_fecha ON daily_stats(fecha);
 
   CREATE TABLE IF NOT EXISTS subscriptions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -142,6 +127,7 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
   );
+  CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
 
   CREATE TABLE IF NOT EXISTS splits (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -156,6 +142,64 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(track_id) REFERENCES tracks(id) ON DELETE CASCADE
   );
+  CREATE INDEX IF NOT EXISTS idx_splits_track_id ON splits(track_id);
+  CREATE INDEX IF NOT EXISTS idx_splits_email ON splits(email);
+
+  CREATE TABLE IF NOT EXISTS chat_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    message TEXT NOT NULL,
+    is_moderated BOOLEAN DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_chat_user_id ON chat_messages(user_id);
+
+  CREATE TABLE IF NOT EXISTS riaa_certifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    artist_id INTEGER NOT NULL,
+    type TEXT NOT NULL, -- Gold, Platinum, Diamond
+    threshold INTEGER NOT NULL,
+    achieved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(artist_id) REFERENCES artists(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_riaa_artist_id ON riaa_certifications(artist_id);
+
+  CREATE TABLE IF NOT EXISTS store_distributions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    track_id INTEGER NOT NULL,
+    platform TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    distributed_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(track_id) REFERENCES tracks(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_store_track_id ON store_distributions(track_id);
+
+  CREATE TABLE IF NOT EXISTS youtube_content_id (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    track_id INTEGER NOT NULL,
+    registration_id TEXT UNIQUE NOT NULL,
+    status TEXT DEFAULT 'active',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(track_id) REFERENCES tracks(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_youtube_track_id ON youtube_content_id(track_id);
+
+  CREATE TABLE IF NOT EXISTS campaigns (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    artist_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    budget REAL,
+    platform TEXT,
+    status TEXT DEFAULT 'active',
+    start_date TEXT,
+    end_date TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(artist_id) REFERENCES artists(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_campaigns_artist_id ON campaigns(artist_id);
 
   CREATE TABLE IF NOT EXISTS split_invitations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -166,6 +210,7 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(split_id) REFERENCES splits(id) ON DELETE CASCADE
   );
+  CREATE INDEX IF NOT EXISTS idx_split_inv_token ON split_invitations(token);
 
   CREATE TABLE IF NOT EXISTS royalty_withholdings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -178,6 +223,7 @@ db.exec(`
     FOREIGN KEY(track_id) REFERENCES tracks(id) ON DELETE CASCADE,
     FOREIGN KEY(split_id) REFERENCES splits(id) ON DELETE SET NULL
   );
+  CREATE INDEX IF NOT EXISTS idx_withholdings_track_id ON royalty_withholdings(track_id);
 
   CREATE TABLE IF NOT EXISTS artist_branding (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -208,6 +254,7 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(track_id) REFERENCES tracks(id) ON DELETE CASCADE
   );
+  CREATE INDEX IF NOT EXISTS idx_lyrics_track_id ON lyrics(track_id);
 
   CREATE TABLE IF NOT EXISTS scheduled_releases (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -218,6 +265,7 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(track_id) REFERENCES tracks(id) ON DELETE CASCADE
   );
+  CREATE INDEX IF NOT EXISTS idx_scheduled_track_id ON scheduled_releases(track_id);
 
   CREATE TABLE IF NOT EXISTS videos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -229,6 +277,7 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(artist_id) REFERENCES artists(id) ON DELETE CASCADE
   );
+  CREATE INDEX IF NOT EXISTS idx_videos_artist_id ON videos(artist_id);
 
   CREATE TABLE IF NOT EXISTS compositions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -240,6 +289,7 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(artist_id) REFERENCES artists(id) ON DELETE CASCADE
   );
+  CREATE INDEX IF NOT EXISTS idx_compositions_artist_id ON compositions(artist_id);
 
   CREATE TABLE IF NOT EXISTS pitches (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -250,6 +300,8 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(track_id) REFERENCES tracks(id) ON DELETE CASCADE
   );
+  CREATE INDEX IF NOT EXISTS idx_pitches_track_id ON pitches(track_id);
+
   CREATE TABLE IF NOT EXISTS user_artists (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -259,6 +311,7 @@ db.exec(`
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY(artist_id) REFERENCES artists(id) ON DELETE CASCADE
   );
+  CREATE INDEX IF NOT EXISTS idx_user_artists_user_id ON user_artists(user_id);
 
   CREATE TABLE IF NOT EXISTS teams (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -277,6 +330,7 @@ db.exec(`
     FOREIGN KEY(team_id) REFERENCES teams(id) ON DELETE CASCADE,
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
   );
+  CREATE INDEX IF NOT EXISTS idx_team_members_user_id ON team_members(user_id);
 
   CREATE TABLE IF NOT EXISTS composition_registrations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -298,6 +352,21 @@ db.exec(`
     FOREIGN KEY(composition_id) REFERENCES compositions(id) ON DELETE CASCADE
   );
 
+  CREATE TABLE IF NOT EXISTS marketplace_beats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    artist_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    genre TEXT,
+    bpm INTEGER,
+    price REAL NOT NULL,
+    audio_url TEXT NOT NULL,
+    cover_url TEXT,
+    status TEXT DEFAULT 'available',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(artist_id) REFERENCES artists(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_beats_artist_id ON marketplace_beats(artist_id);
+
   CREATE TABLE IF NOT EXISTS beat_ratings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     beat_id INTEGER NOT NULL,
@@ -314,15 +383,6 @@ db.exec(`
     user_id INTEGER NOT NULL,
     query TEXT NOT NULL,
     response TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
-  );
-
-  CREATE TABLE IF NOT EXISTS chat_messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    message TEXT NOT NULL,
-    is_moderated BOOLEAN DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
   );
@@ -373,20 +433,6 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(job_id) REFERENCES upload_jobs(id) ON DELETE CASCADE
   );
-
-  CREATE TABLE IF NOT EXISTS marketplace_beats (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    artist_id INTEGER NOT NULL,
-    title TEXT NOT NULL,
-    genre TEXT,
-    bpm INTEGER,
-    price REAL NOT NULL,
-    audio_url TEXT NOT NULL,
-    cover_url TEXT,
-    status TEXT DEFAULT 'available',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(artist_id) REFERENCES artists(id) ON DELETE CASCADE
-  );
 `);
 
 // Seed default users if not exists
@@ -394,6 +440,7 @@ import bcrypt from 'bcryptjs';
 
 const seedUsers = [
   { email: 'admin@immusica.com', password: 'admin123', name: 'Admin User', role: 'admin' },
+  { email: 'joseg09.dg@gmail.com', password: 'admin123', name: 'Jose Admin', role: 'admin' },
   { email: 'artist@immusic.com', password: 'password123', name: 'Elite Artist', role: 'artist' }
 ];
 
