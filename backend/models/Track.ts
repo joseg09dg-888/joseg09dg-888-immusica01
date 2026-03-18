@@ -87,5 +87,5 @@ export const getScheduledReleasesByArtist = (artistId: number) => {
 };
 
 export const cancelScheduledRelease = (id: number) => {
-  return db.prepare('UPDATE scheduled_releases SET status = "cancelled" WHERE id = ?').run(id);
+  return db.prepare("UPDATE scheduled_releases SET status = 'cancelled' WHERE id = ?").run(id);
 };

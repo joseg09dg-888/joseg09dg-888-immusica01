@@ -59,7 +59,13 @@
     "services": "Servicios",
     "plans": "Planes",
     "connect": "Conectar",
-    "feedback": "Feedback"
+    "feedback": "Feedback",
+    "spotlight": "Spotlight",
+    "catalog_migration": "Migración de Catálogo",
+    "splits": "Splits / Divisiones",
+    "hyperfollow": "HyperFollow",
+    "promo_cards": "Promo Cards",
+    "facebook_ads": "Facebook Ads"
   },
   "admin": {
     "inbox": "Buzón de Entrada",

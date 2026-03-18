@@ -5,7 +5,7 @@ import { cache } from '../utils/cache';
 export const getBeats = (req: Request, res: Response) => {
   const { genre, minPrice, maxPrice, sortBy } = req.query;
   
-  let query = 'SELECT * FROM marketplace_beats WHERE status = "available"';
+  let query = "SELECT * FROM marketplace_beats WHERE status = 'available'";
   const params: any[] = [];
   
   if (genre) {
@@ -52,7 +52,7 @@ export const getHotRanking = (req: Request, res: Response) => {
   
   const ranking = db.prepare(`
     SELECT * FROM marketplace_beats 
-    WHERE status = "available" 
+    WHERE status = 'available' 
     ORDER BY sales_count DESC 
     LIMIT 10
   `).all();

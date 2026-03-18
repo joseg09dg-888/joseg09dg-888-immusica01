@@ -131,7 +131,7 @@ export const processRoyalty = async (req: AuthRequest, res: Response) => {
 };
 
 const processSplitsForRoyalty = (trackId: number, amount: number, royaltyId: number) => {
-  const splits = db.prepare('SELECT * FROM splits WHERE track_id = ? AND status = "accepted"').all(trackId) as any[];
+  const splits = db.prepare("SELECT * FROM splits WHERE track_id = ? AND status = 'accepted'").all(trackId) as any[];
   
   // Get track owner
   const track = db.prepare('SELECT artist_id FROM tracks WHERE id = ?').get(trackId) as any;

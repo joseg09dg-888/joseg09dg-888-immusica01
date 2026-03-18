@@ -130,10 +130,11 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     action TEXT NOT NULL,
     details TEXT,
+    status TEXT DEFAULT 'pending',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
   CREATE INDEX IF NOT EXISTS idx_ia_logs_action ON ia_logs(action);
-  CREATE INDEX IF NOT EXISTS idx_daily_stats_track_id ON daily_stats(track_id);
+  CREATE INDEX IF NOT EXISTS idx_ia_logs_status ON ia_logs(status);
   CREATE INDEX IF NOT EXISTS idx_daily_stats_fecha ON daily_stats(fecha);
 
   CREATE TABLE IF NOT EXISTS subscriptions (
@@ -620,5 +621,9 @@ try { db.exec("ALTER TABLE marketplace_beats ADD COLUMN rating_avg REAL DEFAULT 
 
 // YouTube SEO
 try { db.exec("ALTER TABLE youtube_content_id ADD COLUMN seo_metadata TEXT;"); } catch(e) {}
+
+// IA Logs status
+try { db.exec("ALTER TABLE ia_logs ADD COLUMN status TEXT DEFAULT 'pending';"); } catch(e) {}
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_ia_logs_status ON ia_logs(status);"); } catch(e) {}
 
 export default db;

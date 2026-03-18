@@ -7,7 +7,8 @@ import {
   LayoutDashboard, Zap, BarChart3, Users, LogOut, LogIn, 
   ShieldCheck, DollarSign, Database, Menu, X, ChevronDown, Radio,
   Palette, ShoppingBag, Rocket, Scale, Globe, Music, Facebook, Wallet,
-  Languages, Shield, MessageSquare, Image, Target, Share2, Sparkles, ArrowRight
+  Languages, Shield, MessageSquare, Image, Target, Share2, Sparkles, ArrowRight,
+  Star, ArrowRightLeft, Scissors, Link as LinkIcon, CreditCard, Inbox, List, Settings, Cpu
 } from 'lucide-react';
 
 const Navbar: React.FC = () => {
@@ -49,6 +50,7 @@ const Navbar: React.FC = () => {
         { label: t('nav.ai_chat'), path: '/ai-chat', icon: Sparkles, protected: true },
         { label: t('nav.community'), path: '/chat', icon: MessageSquare, protected: true },
         { label: t('nav.feedback'), path: '/feedback', icon: MessageSquare, protected: true },
+        { label: t('nav.spotlight'), path: '/spotlight', icon: Star, protected: true },
         { 
           label: 'Admin', 
           path: '/admin', 
@@ -77,6 +79,7 @@ const Navbar: React.FC = () => {
             { label: 'Videos', path: '/videos', icon: Image, protected: true, desc: 'Global Video Distribution' },
             { label: 'Publishing', path: '/publishing', icon: Shield, protected: true, desc: 'Editorial & Royalties' },
             { label: 'Playlists', path: '/playlists', icon: Database, protected: true, desc: 'Database Management' },
+            { label: t('nav.catalog_migration'), path: '/migration', icon: ArrowRightLeft, protected: true, desc: 'Import from other DSPs' },
           ]
         },
         {
@@ -87,6 +90,26 @@ const Navbar: React.FC = () => {
             { label: 'Financing', path: '/financing', icon: DollarSign, protected: true, desc: 'Royalty Advances' },
             { label: 'Wallet', path: '/wallet', icon: Wallet, protected: true, desc: 'Neural Payouts & Balance' },
             { label: 'Legal', path: '/legal', icon: ShieldCheck, protected: true, desc: 'AI Contract Agent' },
+            { label: t('nav.splits'), path: '/splits', icon: Scissors, protected: true, desc: 'Revenue Share Management' },
+            { label: t('nav.hyperfollow'), path: '/hyperfollow', icon: LinkIcon, protected: true, desc: 'Smart Marketing Links' },
+            { label: t('nav.promo_cards'), path: '/promo-cards', icon: CreditCard, protected: true, desc: 'Social Media Assets' },
+            { label: t('nav.facebook_ads'), path: '/facebook-ads', icon: Facebook, protected: true, desc: 'Ad Campaign Manager' },
+          ]
+        }
+      ]
+    },
+    {
+      label: 'Admin Panel',
+      visible: isAuthenticated && (user?.role === 'ai_operator' || user?.role === 'admin' || user?.email?.toLowerCase() === 'joseg09.dg@gmail.com'),
+      categories: [
+        {
+          title: 'Infrastructure',
+          items: [
+            { label: t('admin.inbox'), path: '/admin/inbox', icon: Inbox, protected: true, desc: 'System Messages' },
+            { label: t('admin.logs'), path: '/admin/logs', icon: List, protected: true, desc: 'Activity History' },
+            { label: t('admin.tasks'), path: '/admin/tasks', icon: Zap, protected: true, desc: 'Pending Operations' },
+            { label: 'Infrastructure', path: '/admin/infrastructure', icon: Cpu, protected: true, desc: 'Resource Monitor' },
+            { label: t('admin.config'), path: '/admin/config', icon: Settings, protected: true, desc: 'Global Settings' },
           ]
         }
       ]
@@ -122,7 +145,13 @@ const Navbar: React.FC = () => {
             </div>
             <div className="flex flex-col">
               <span className="text-base sm:text-lg font-display font-black tracking-tighter leading-none uppercase">IM MUSIC</span>
-              <span className="text-[8px] sm:text-[10px] font-black tracking-[0.2em] sm:tracking-[0.3em] text-electric-purple uppercase leading-none">Neural Network</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[8px] sm:text-[10px] font-black tracking-[0.2em] sm:tracking-[0.3em] text-electric-purple uppercase leading-none">Neural Network</span>
+                <div className="flex items-center gap-1">
+                  <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[6px] font-black text-emerald-400/50 uppercase tracking-widest">Live</span>
+                </div>
+              </div>
             </div>
           </Link>
 
@@ -167,15 +196,52 @@ const Navbar: React.FC = () => {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute top-full -right-64 mt-4 w-[800px] glass-card p-10 border-white/10 shadow-2xl overflow-hidden"
+                      className="absolute top-full mt-4 glass-card p-10 border-white/10 shadow-2xl overflow-hidden"
                     >
                       {/* Decorative Background */}
                       <div className="absolute top-0 right-0 w-96 h-96 bg-cyber-cyan/5 blur-[100px] rounded-full -mr-48 -mt-48" />
                       
-                      <div className="relative z-10 grid grid-cols-3 gap-8">
+                      <div className={`relative z-10 grid gap-8 ${
+                        navGroups[2]?.visible ? 'grid-cols-4 w-[1000px] -right-[400px]' : 'grid-cols-3 w-[800px] -right-64'
+                      }`}>
                         {navGroups[1].categories?.map((category) => (
                           <div key={category.title} className="space-y-6">
                             <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 px-2">{category.title}</h4>
+                            <div className="space-y-2">
+                              {category.items.map((item) => (
+                                <Link
+                                  key={item.path}
+                                  to={item.path}
+                                  onClick={() => setActiveDropdown(null)}
+                                  className={`group/item p-4 rounded-xl flex items-center gap-4 transition-all border border-transparent ${
+                                    isActive(item.path)
+                                      ? 'bg-cyber-cyan/10 border-cyber-cyan/20 text-cyber-cyan'
+                                      : 'hover:bg-white/5 hover:border-white/10 text-white/60 hover:text-white'
+                                  }`}
+                                >
+                                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                                    isActive(item.path) 
+                                      ? 'bg-cyber-cyan text-ink shadow-lg shadow-cyber-cyan/20' 
+                                      : 'bg-white/5 group-hover/item:bg-white/10'
+                                  }`}>
+                                    <item.icon size={18} className="group-hover/item:scale-110 transition-transform" />
+                                  </div>
+                                  <div className="space-y-0.5">
+                                    <span className="text-[10px] font-black uppercase tracking-widest block">{item.label}</span>
+                                    <p className="text-[9px] text-white/20 font-medium leading-tight">
+                                      {item.desc}
+                                    </p>
+                                  </div>
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {/* Admin Category in Mega Menu */}
+                        {navGroups[2]?.visible && navGroups[2].categories?.map((category) => (
+                          <div key={category.title} className="space-y-6 border-l border-white/5 pl-8">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-cyber-cyan px-2">{category.title}</h4>
                             <div className="space-y-2">
                               {category.items.map((item) => (
                                 <Link
@@ -344,7 +410,13 @@ const Navbar: React.FC = () => {
                   </div>
                   <div className="flex flex-col">
                     <span className="text-lg font-display font-black tracking-tighter uppercase leading-none">IM MUSIC</span>
-                    <span className="text-[8px] font-black tracking-[0.2em] text-electric-purple uppercase leading-none">Neural Network</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[8px] font-black tracking-[0.2em] text-electric-purple uppercase leading-none">Neural Network</span>
+                      <div className="flex items-center gap-1">
+                        <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-[6px] font-black text-emerald-400/50 uppercase tracking-widest">Live</span>
+                      </div>
+                    </div>
                   </div>
                 </Link>
                 <button onClick={() => setIsOpen(false)} className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
@@ -370,52 +442,55 @@ const Navbar: React.FC = () => {
                   ))}
                 </div>
 
-                {navGroups.map((group) => (
-                  <div key={group.label} className="space-y-4">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 px-4">{group.label}</h3>
-                    <div className="grid gap-2">
-                      {group.items?.map((item) => {
-                        if (item.protected && !isAuthenticated) return null;
-                        if (item.visible === false) return null;
-                        return (
-                          <Link
-                            key={item.path}
-                            to={item.path}
-                            onClick={() => setIsOpen(false)}
-                            className={`p-6 rounded-2xl flex items-center gap-6 transition-all ${
-                              isActive(item.path)
-                                ? 'bg-electric-purple text-white'
-                                : 'bg-white/5 text-white/60'
-                            }`}
-                          >
-                            <item.icon size={24} />
-                            <span className="text-xl font-display font-black uppercase tracking-tight">{item.label}</span>
-                          </Link>
-                        );
-                      })}
-                      {group.categories?.map((category) => (
-                        <div key={category.title} className="space-y-2 mt-4">
-                          <h4 className="text-[10px] font-black uppercase tracking-widest text-white/10 px-4">{category.title}</h4>
-                          {category.items.map((item) => (
+                {navGroups.map((group) => {
+                  if (group.visible === false) return null;
+                  return (
+                    <div key={group.label} className="space-y-4">
+                      <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 px-4">{group.label}</h3>
+                      <div className="grid gap-2">
+                        {group.items?.map((item) => {
+                          if (item.protected && !isAuthenticated) return null;
+                          if (item.visible === false) return null;
+                          return (
                             <Link
                               key={item.path}
                               to={item.path}
                               onClick={() => setIsOpen(false)}
                               className={`p-6 rounded-2xl flex items-center gap-6 transition-all ${
                                 isActive(item.path)
-                                  ? 'bg-cyber-cyan text-ink'
+                                  ? 'bg-electric-purple text-white'
                                   : 'bg-white/5 text-white/60'
                               }`}
                             >
                               <item.icon size={24} />
                               <span className="text-xl font-display font-black uppercase tracking-tight">{item.label}</span>
                             </Link>
-                          ))}
-                        </div>
-                      ))}
+                          );
+                        })}
+                        {group.categories?.map((category) => (
+                          <div key={category.title} className="space-y-2 mt-4">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-white/10 px-4">{category.title}</h4>
+                            {category.items.map((item) => (
+                              <Link
+                                key={item.path}
+                                to={item.path}
+                                onClick={() => setIsOpen(false)}
+                                className={`p-6 rounded-2xl flex items-center gap-6 transition-all ${
+                                  isActive(item.path)
+                                    ? 'bg-cyber-cyan text-ink'
+                                    : 'bg-white/5 text-white/60'
+                                }`}
+                              >
+                                <item.icon size={24} />
+                                <span className="text-xl font-display font-black uppercase tracking-tight">{item.label}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 
                 <div className="space-y-4">
                   <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 px-4">Pricing</h3>

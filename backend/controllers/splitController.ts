@@ -72,7 +72,7 @@ export const createSplit = async (req: Request, res: Response) => {
 export const getTrackSplits = async (req: Request, res: Response) => {
   const { trackId } = req.params;
   try {
-    const splits = db.prepare('SELECT * FROM splits WHERE track_id = ? AND status = "accepted"').all(trackId);
+    const splits = db.prepare("SELECT * FROM splits WHERE track_id = ? AND status = 'accepted'").all(trackId);
     res.json(splits);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -82,7 +82,7 @@ export const getTrackSplits = async (req: Request, res: Response) => {
 export const getPendingSplits = async (req: Request, res: Response) => {
   const { trackId } = req.params;
   try {
-    const splits = db.prepare('SELECT * FROM splits WHERE track_id = ? AND status = "pending"').all(trackId);
+    const splits = db.prepare("SELECT * FROM splits WHERE track_id = ? AND status = 'pending'").all(trackId);
     res.json(splits);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -92,15 +92,15 @@ export const getPendingSplits = async (req: Request, res: Response) => {
 export const acceptSplit = async (req: Request, res: Response) => {
   const { token } = req.params;
   try {
-    const invitation = db.prepare('SELECT * FROM split_invitations WHERE token = ? AND status = "pending"').get(token) as any;
+    const invitation = db.prepare("SELECT * FROM split_invitations WHERE token = ? AND status = 'pending'").get(token) as any;
     if (!invitation) return res.status(404).json({ error: 'Invitation not found or already processed' });
 
     if (new Date(invitation.expires_at) < new Date()) {
       return res.status(400).json({ error: 'Invitation expired' });
     }
 
-    db.prepare('UPDATE splits SET status = "accepted", accepted_at = CURRENT_TIMESTAMP WHERE id = ?').run(invitation.split_id);
-    db.prepare('UPDATE split_invitations SET status = "accepted" WHERE id = ?').run(invitation.id);
+    db.prepare("UPDATE splits SET status = 'accepted', accepted_at = CURRENT_TIMESTAMP WHERE id = ?").run(invitation.split_id);
+    db.prepare("UPDATE split_invitations SET status = 'accepted' WHERE id = ?").run(invitation.id);
 
     res.send('Split accepted successfully. You can close this window.');
   } catch (error: any) {
@@ -190,7 +190,7 @@ export const resendInvitation = async (req: Request, res: Response) => {
     expiresAt.setDate(expiresAt.getDate() + 30);
 
     db.prepare('UPDATE splits SET invitation_token = ? WHERE id = ?').run(token, splitId);
-    db.prepare('UPDATE split_invitations SET token = ?, expires_at = ?, status = "pending" WHERE split_id = ?').run(token, expiresAt.toISOString(), splitId);
+    db.prepare("UPDATE split_invitations SET token = ?, expires_at = ?, status = 'pending' WHERE split_id = ?").run(token, expiresAt.toISOString(), splitId);
 
     const acceptLink = `${process.env.APP_URL}/api/splits/accept/${token}`;
 

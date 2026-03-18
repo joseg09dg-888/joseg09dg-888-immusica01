@@ -45,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [token]);
 
   const login = () => {
-    window.location.href = `${api.defaults.baseURL}/auth/login`;
+    window.location.href = '/login';
   };
 
   const loginWithEmail = async (email: string, password: string) => {
