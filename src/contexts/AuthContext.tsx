@@ -11,6 +11,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
+  loading: boolean;
   login: () => void;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -23,13 +24,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('im_music_token'));
+  const [loading, setLoading] = useState<boolean>(!!token);
 
   useEffect(() => {
     if (token) {
+      setLoading(true);
       // Fetch user data if token exists
       api.get('/auth/me')
-        .then(res => setUser(res.data))
-        .catch(() => logout());
+        .then(res => {
+          setUser(res.data);
+          setLoading(false);
+        })
+        .catch(() => {
+          logout();
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
     }
   }, [token]);
 
@@ -38,6 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginWithEmail = async (email: string, password: string) => {
+    setLoading(true);
     try {
       const response = await api.post('/auth/login', { email, password });
       const { token, user } = response.data;
@@ -47,6 +59,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Error en login:', error);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -54,9 +68,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('im_music_token');
     setToken(null);
     setUser(null);
+    setLoading(false);
   };
 
   const handleAuthCallback = async (code: string) => {
+    setLoading(true);
     try {
       const response = await api.get(`/auth/callback?code=${code}`);
       const { token, user } = response.data;
@@ -65,11 +81,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(user);
     } catch (error) {
       console.error('Error en autenticación:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, loginWithEmail, logout, handleAuthCallback, isAuthenticated: !!token }}>
+    <AuthContext.Provider value={{ user, token, loading, login, loginWithEmail, logout, handleAuthCallback, isAuthenticated: !!token }}>
       {children}
     </AuthContext.Provider>
   );

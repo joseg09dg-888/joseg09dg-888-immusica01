@@ -5,6 +5,8 @@ import { authenticate } from '../middleware/auth';
 const router = Router();
 
 router.get('/beats', authenticate, marketplaceController.getBeats);
+router.get('/hot-ranking', authenticate, marketplaceController.getHotRanking);
+router.get('/top-producers', authenticate, marketplaceController.getTopProducers);
 router.post('/buy', authenticate, marketplaceController.buyBeat);
 
 export default router;

@@ -1,101 +1,110 @@
-import React, { useEffect, useState } from 'react';
-import { getPendingTasks } from '../../services/api';
-import { ListTodo, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
+import { CheckCircle, Clock, AlertCircle, Play, Pause, Trash2 } from 'lucide-react';
+import { adminService } from '../../services/adminService';
+import { toast } from 'sonner';
 
-const AdminTasks: React.FC = () => {
+const AdminTasks = () => {
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getPendingTasks()
-      .then(res => setTasks(Array.isArray(res.data) ? res.data : []))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    fetchTasks();
   }, []);
 
-  if (loading) return (
-    <div className="flex items-center justify-center py-20">
-      <div className="text-electric-purple animate-pulse font-black uppercase tracking-widest">Cargando Tareas...</div>
-    </div>
-  );
+  const fetchTasks = async () => {
+    try {
+      const data = await adminService.getTasks();
+      setTasks(data);
+    } catch (error) {
+      toast.error('Error al cargar tareas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAction = async (taskId: number, action: string) => {
+    try {
+      await adminService.processTask(taskId, action);
+      toast.success(`Tarea ${action === 'run' ? 'iniciada' : 'pausada'}`);
+      fetchTasks();
+    } catch (error) {
+      toast.error('Error al procesar tarea');
+    }
+  };
+
+  if (loading) return <div className="flex justify-center p-12"><Clock className="animate-spin" /></div>;
 
   return (
-    <div className="space-y-8">
-      <h2 className="text-2xl font-display font-black uppercase tracking-tighter italic flex items-center gap-3">
-        <ListTodo className="text-electric-purple" size={24} />
-        Tareas Pendientes
-      </h2>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Tareas del Sistema (OpenClaw)</h2>
+        <button 
+          onClick={fetchTasks}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+        >
+          Actualizar
+        </button>
+      </div>
 
-      <div className="glass-card overflow-hidden border-white/10">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-white/10 bg-white/5">
-                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">ID</th>
-                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">Tipo</th>
-                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">Estado</th>
-                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">Prioridad</th>
-                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">Entrada/Salida</th>
-                <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">Creado</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {tasks.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="p-12 text-center text-white/20 uppercase font-black tracking-widest text-xs">
-                    No hay tareas pendientes en la cola
-                  </td>
-                </tr>
-              ) : (
-                tasks.map(task => (
-                  <tr key={task.id} className="hover:bg-white/5 transition-colors">
-                    <td className="p-4 text-xs font-mono text-white/40">{task.id}</td>
-                    <td className="p-4">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-white">
-                        {task.task_type}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        {task.status === 'pending' ? <Clock size={14} className="text-white/40" /> :
-                         task.status === 'completed' ? <CheckCircle2 size={14} className="text-emerald-400" /> :
-                         <AlertCircle size={14} className="text-neon-pink" />}
-                        <span className={`text-[10px] font-black uppercase tracking-widest ${
-                          task.status === 'pending' ? 'text-white/40' :
-                          task.status === 'completed' ? 'text-emerald-400' :
-                          'text-neon-pink'
-                        }`}>
-                          {task.status}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`text-[10px] font-black px-2 py-1 rounded-md ${
-                        task.priority >= 4 ? 'bg-neon-pink/20 text-neon-pink' :
-                        task.priority >= 2 ? 'bg-electric-purple/20 text-electric-purple' :
-                        'bg-white/10 text-white/40'
-                      }`}>
-                        P{task.priority}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="space-y-1">
-                        <div className="text-[9px] text-white/40 truncate max-w-[200px]">IN: {task.input_data || '-'}</div>
-                        <div className="text-[9px] text-electric-purple/40 truncate max-w-[200px]">OUT: {task.output_data || '-'}</div>
-                        {task.error_message && (
-                          <div className="text-[9px] text-neon-pink truncate max-w-[200px]">ERR: {task.error_message}</div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-4 text-[10px] text-white/40">
-                      {new Date(task.created_at).toLocaleString()}
-                    </td>
-                  </tr>
-                ))
+      <div className="grid gap-4">
+        {tasks.map((task) => (
+          <motion.div
+            key={task.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between"
+          >
+            <div className="flex items-center gap-4">
+              <div className={`p-2 rounded-lg ${
+                task.status === 'completed' ? 'bg-emerald-100 text-emerald-600' :
+                task.status === 'pending' ? 'bg-amber-100 text-amber-600' :
+                'bg-slate-100 text-slate-600'
+              }`}>
+                {task.status === 'completed' ? <CheckCircle size={20} /> :
+                 task.status === 'pending' ? <Clock size={20} /> :
+                 <AlertCircle size={20} />}
+              </div>
+              <div>
+                <h3 className="font-medium text-slate-900">{task.type}</h3>
+                <p className="text-sm text-slate-500">{task.details}</p>
+                <span className="text-xs text-slate-400">
+                  {new Date(task.created_at).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              {task.status === 'pending' && (
+                <button 
+                  onClick={() => handleAction(task.id, 'run')}
+                  className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                  title="Ejecutar"
+                >
+                  <Play size={18} />
+                </button>
               )}
-            </tbody>
-          </table>
-        </div>
+              {task.status === 'running' && (
+                <button 
+                  onClick={() => handleAction(task.id, 'pause')}
+                  className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                  title="Pausar"
+                >
+                  <Pause size={18} />
+                </button>
+              )}
+              <button className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                <Trash2 size={18} />
+              </button>
+            </div>
+          </motion.div>
+        ))}
+
+        {tasks.length === 0 && (
+          <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+            <p className="text-slate-500 text-sm">No hay tareas pendientes</p>
+          </div>
+        )}
       </div>
     </div>
   );

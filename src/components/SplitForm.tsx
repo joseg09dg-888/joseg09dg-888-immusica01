@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { createSplit, getTracks } from '../services/api';
+import { splitService } from '../services/splitService';
+import { trackService } from '../services/trackService';
 import { motion } from 'motion/react';
 import { Users, Mail, Percent, Music, UserPlus, Loader2, CheckCircle2, Sparkles, Zap, ArrowRight, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,7 +20,7 @@ const SplitForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    getTracks()
+    trackService.getTracks()
       .then(res => setTracks(res.data))
       .catch(err => console.error('Error loading tracks:', err));
   }, []);
@@ -30,7 +31,7 @@ const SplitForm: React.FC = () => {
 
     setLoading(true);
     try {
-      const res = await createSplit(Number(trackId), { name, email, percentage: Number(percentage), role });
+      await splitService.createSplit(Number(trackId), { name, email, percentage: Number(percentage), role });
       toast.success('Split invitation sent successfully!');
       // Reset form
       setName('');

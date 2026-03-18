@@ -3,10 +3,12 @@ import path from 'path';
 
 dotenv.config();
 
+console.log('Config loaded. JWT_SECRET exists:', !!process.env.JWT_SECRET);
+
 export const config = {
   port: parseInt(process.env.PORT || '3000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
-  jwtSecret: process.env.JWT_SECRET || 'super-secret-key-for-enterprise-im-music',
+  jwtSecret: process.env.JWT_SECRET || 'supersecret',
   databaseUrl: process.env.DATABASE_URL || path.join(process.cwd(), 'music_platform.db'),
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME,

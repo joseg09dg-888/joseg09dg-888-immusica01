@@ -17,11 +17,12 @@ export const getSystemLogs = (lines?: number) => {
 };
 
 export const getResourceStatus = () => api.get('/openclaw/resources');
-export const getAiConfig = () => api.get('/openclaw/config');
+export const getAiConfig = () => api.get('/openclaw/config').then(res => res.data);
+export const updateAiConfig = (config: any) => api.put('/openclaw/config', config).then(res => res.data);
 export const setEmergencyStop = (stop: boolean) =>
   api.post('/openclaw/emergency', { stop });
-export const getPendingTasks = () => api.get('/openclaw/tasks');
-export const updateTask = (id: number, data: any) => api.put(`/openclaw/tasks/${id}`, data);
+export const getTasks = () => api.get('/openclaw/tasks').then(res => res.data);
+export const processTask = (id: number, action: string) => api.put(`/openclaw/tasks/${id}`, { action }).then(res => res.data);
 export const sendNotification = (channel: string, recipient: string, message: string) =>
   api.post('/openclaw/notify', { channel, recipient, message });
 export const createGitHubBranch = (branch: string) => api.post('/openclaw/github/branch', { branch });
@@ -33,9 +34,10 @@ export const adminService = {
   getSystemLogs,
   getResourceStatus,
   getAiConfig,
+  updateAiConfig,
   setEmergencyStop,
-  getPendingTasks,
-  updateTask,
+  getTasks,
+  processTask,
   sendNotification,
   createGitHubBranch,
   testNgrok,

@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { config } from '../config/config';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
+const JWT_SECRET = config.jwtSecret;
 
 export interface AuthRequest extends Request {
   user?: { id: number; email: string; role: string };
@@ -16,6 +17,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
     req.user = decoded;
     next();
   } catch (err) {
+    console.error('JWT Verification Error:', err instanceof Error ? err.message : err);
     return res.status(401).json({ error: 'Invalid token' });
   }
 };

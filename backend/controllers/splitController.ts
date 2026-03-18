@@ -123,6 +123,83 @@ export const rejectSplit = async (req: Request, res: Response) => {
   }
 };
 
+export const getUserSplits = async (req: Request, res: Response) => {
+  const userId = (req as any).user.id;
+  const userEmail = (req as any).user.email;
+
+  try {
+    // Splits where the user is the owner (via their tracks)
+    const ownedSplits = db.prepare(`
+      SELECT s.*, t.title as track_title 
+      FROM splits s
+      JOIN tracks t ON s.track_id = t.id
+      WHERE t.artist_id IN (SELECT id FROM artists WHERE user_id = ?)
+    `).all(userId);
+
+    // Splits where the user is a collaborator (via their email)
+    const collaboratorSplits = db.prepare(`
+      SELECT s.*, t.title as track_title 
+      FROM splits s
+      JOIN tracks t ON s.track_id = t.id
+      WHERE s.email = ?
+    `).all(userEmail);
+
+    res.json({ owned: ownedSplits, collaborator: collaboratorSplits });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const updateSplit = async (req: Request, res: Response) => {
+  const { splitId } = req.params;
+  const { percentage, role, artist_name } = req.body;
+
+  try {
+    const split = db.prepare('SELECT * FROM splits WHERE id = ?').get(splitId) as any;
+    if (!split) return res.status(404).json({ error: 'Split not found' });
+
+    // Check total percentage again
+    const otherSplits = db.prepare('SELECT percentage FROM splits WHERE track_id = ? AND id != ?').all(split.track_id, splitId) as { percentage: number }[];
+    const currentTotal = otherSplits.reduce((acc, s) => acc + s.percentage, 0);
+
+    if (currentTotal + percentage > 100) {
+      return res.status(400).json({ error: 'Total percentage cannot exceed 100%' });
+    }
+
+    db.prepare(`
+      UPDATE splits 
+      SET percentage = ?, role = ?, artist_name = ? 
+      WHERE id = ?
+    `).run(percentage, role, artist_name, splitId);
+
+    res.json({ message: 'Split updated' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const resendInvitation = async (req: Request, res: Response) => {
+  const { splitId } = req.params;
+  try {
+    const split = db.prepare('SELECT * FROM splits WHERE id = ?').get(splitId) as any;
+    if (!split) return res.status(404).json({ error: 'Split not found' });
+    if (split.status === 'accepted') return res.status(400).json({ error: 'Split already accepted' });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
+    db.prepare('UPDATE splits SET invitation_token = ? WHERE id = ?').run(token, splitId);
+    db.prepare('UPDATE split_invitations SET token = ?, expires_at = ?, status = "pending" WHERE split_id = ?').run(token, expiresAt.toISOString(), splitId);
+
+    const acceptLink = `${process.env.APP_URL}/api/splits/accept/${token}`;
+
+    res.json({ message: 'Invitation resent', acceptLink });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export const deleteSplit = async (req: Request, res: Response) => {
   const { splitId } = req.params;
   try {

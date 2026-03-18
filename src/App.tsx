@@ -35,6 +35,7 @@ import YoutubeCID from './pages/YoutubeCID';
 import Feedback from './pages/Feedback';
 import Login from './pages/Login';
 import AdminRoute from './routes/AdminRoute';
+import PrivateRoute from './routes/PrivateRoute';
 import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
@@ -47,33 +48,36 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/spotify/callback" element={<SpotifyCallback />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/plans" element={<Plans />} />
-          <Route path="/splits" element={<Splits />} />
-          <Route path="/hyperfollow" element={<HyperFollow />} />
-          <Route path="/chat" element={<CommunityChat />} />
-          <Route path="/ai-chat" element={<AIChat />} />
-          <Route path="/playlists" element={<Playlists />} />
-          <Route path="/spotlight" element={<Spotlight />} />
-          <Route path="/promo-cards" element={<PromoCards />} />
-          <Route path="/releases" element={<Releases />} />
-          <Route path="/videos" element={<Videos />} />
-          <Route path="/publishing" element={<Publishing />} />
-          <Route path="/artists" element={<Artists />} />
-          <Route path="/stats" element={<Stats />} />
-          <Route path="/marketing" element={<Marketing />} />
-          <Route path="/legal" element={<Legal />} />
-          <Route path="/marketplace" element={<Marketplace />} />
-          <Route path="/migration" element={<CatalogMigration />} />
-          <Route path="/financing" element={<Financing />} />
-          <Route path="/facebook-ads" element={<FacebookAds />} />
-          <Route path="/catalog" element={<Catalog />} />
-          <Route path="/wallet" element={<Wallet />} />
-          <Route path="/vault" element={<Vault />} />
-          <Route path="/riaa" element={<Riaa />} />
-          <Route path="/spotify-verify" element={<SpotifyVerify />} />
-          <Route path="/youtube-cid" element={<YoutubeCID />} />
-          <Route path="/feedback" element={<Feedback />} />
+          
+          {/* Protected Routes */}
+          <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/plans" element={<PrivateRoute><Plans /></PrivateRoute>} />
+          <Route path="/splits" element={<PrivateRoute><Splits /></PrivateRoute>} />
+          <Route path="/hyperfollow" element={<PrivateRoute><HyperFollow /></PrivateRoute>} />
+          <Route path="/chat" element={<PrivateRoute><CommunityChat /></PrivateRoute>} />
+          <Route path="/ai-chat" element={<PrivateRoute><AIChat /></PrivateRoute>} />
+          <Route path="/playlists" element={<PrivateRoute><Playlists /></PrivateRoute>} />
+          <Route path="/spotlight" element={<PrivateRoute><Spotlight /></PrivateRoute>} />
+          <Route path="/promo-cards" element={<PrivateRoute><PromoCards /></PrivateRoute>} />
+          <Route path="/releases" element={<PrivateRoute><Releases /></PrivateRoute>} />
+          <Route path="/videos" element={<PrivateRoute><Videos /></PrivateRoute>} />
+          <Route path="/publishing" element={<PrivateRoute><Publishing /></PrivateRoute>} />
+          <Route path="/artists" element={<PrivateRoute><Artists /></PrivateRoute>} />
+          <Route path="/stats" element={<PrivateRoute><Stats /></PrivateRoute>} />
+          <Route path="/marketing" element={<PrivateRoute><Marketing /></PrivateRoute>} />
+          <Route path="/legal" element={<PrivateRoute><Legal /></PrivateRoute>} />
+          <Route path="/marketplace" element={<PrivateRoute><Marketplace /></PrivateRoute>} />
+          <Route path="/migration" element={<PrivateRoute><CatalogMigration /></PrivateRoute>} />
+          <Route path="/financing" element={<PrivateRoute><Financing /></PrivateRoute>} />
+          <Route path="/facebook-ads" element={<PrivateRoute><FacebookAds /></PrivateRoute>} />
+          <Route path="/catalog" element={<PrivateRoute><Catalog /></PrivateRoute>} />
+          <Route path="/wallet" element={<PrivateRoute><Wallet /></PrivateRoute>} />
+          <Route path="/vault" element={<PrivateRoute><Vault /></PrivateRoute>} />
+          <Route path="/riaa" element={<PrivateRoute><Riaa /></PrivateRoute>} />
+          <Route path="/spotify-verify" element={<PrivateRoute><SpotifyVerify /></PrivateRoute>} />
+          <Route path="/youtube-cid" element={<PrivateRoute><YoutubeCID /></PrivateRoute>} />
+          <Route path="/feedback" element={<PrivateRoute><Feedback /></PrivateRoute>} />
+          
           <Route path="/admin/*" element={
             <AdminRoute>
               <AdminDashboard />

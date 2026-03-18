@@ -85,6 +85,7 @@ const Navbar: React.FC = () => {
             { label: 'Marketing', path: '/marketing', icon: Zap, protected: true, desc: 'AI Branding & Strategy' },
             { label: 'Marketplace', path: '/marketplace', icon: ShoppingBag, protected: true, desc: 'Beats & Licenses' },
             { label: 'Financing', path: '/financing', icon: DollarSign, protected: true, desc: 'Royalty Advances' },
+            { label: 'Wallet', path: '/wallet', icon: Wallet, protected: true, desc: 'Neural Payouts & Balance' },
             { label: 'Legal', path: '/legal', icon: ShieldCheck, protected: true, desc: 'AI Contract Agent' },
           ]
         }

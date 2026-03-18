@@ -1,41 +1,47 @@
-import { Response } from 'express';
-import { AuthRequest } from '../middleware/auth';
-import * as YoutubeModel from '../models/Youtube';
-import * as TrackModel from '../models/Track';
-import * as ArtistModel from '../models/Artist';
+import { Request, Response } from 'express';
+import db from '../config/database';
 
-export const registerContentId = async (req: AuthRequest, res: Response) => {
+export const requestArtistChannel = (req: Request, res: Response) => {
+  const { artistId, channelUrl } = req.body;
+  
+  if (!artistId || !channelUrl) {
+    return res.status(400).json({ error: 'Faltan campos obligatorios' });
+  }
+  
   try {
-    const { track_id } = req.body;
-    const track = TrackModel.getTrackById(parseInt(track_id));
+    const result = db.prepare(`
+      INSERT INTO youtube_artist_requests (artist_id, channel_url)
+      VALUES (?, ?)
+    `).run(artistId, channelUrl);
     
-    if (!track) return res.status(404).json({ error: 'Track no encontrado' });
-    
-    const registrationId = 'YT-CID-' + Math.random().toString(36).substring(2, 10).toUpperCase();
-    
-    YoutubeModel.registerContentId(track.id, registrationId);
-    
-    res.json({
-      message: 'Track registrado en YouTube Content ID',
-      registration_id: registrationId,
-      status: 'active'
-    });
+    res.json({ success: true, requestId: result.lastInsertRowid });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al registrar en Content ID' });
+    res.status(500).json({ error: 'Error al procesar la solicitud' });
   }
 };
 
-export const getContentIds = async (req: AuthRequest, res: Response) => {
+export const updateContentIdMetadata = (req: Request, res: Response) => {
+  const { contentId, seoMetadata } = req.body;
+  
   try {
-    if (!req.user) return res.status(401).json({ error: 'No autorizado' });
+    db.prepare(`
+      UPDATE youtube_content_id 
+      SET seo_metadata = ? 
+      WHERE id = ?
+    `).run(JSON.stringify(seoMetadata), contentId);
     
-    const artists = ArtistModel.getArtistsByUser(req.user.id);
-    if (artists.length === 0) return res.status(404).json({ error: 'Artista no encontrado' });
-    
-    const registrations = YoutubeModel.getAllContentIdsByArtist(artists[0].id);
-    res.json(registrations);
+    res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: 'Error al obtener registros de Content ID' });
+    res.status(500).json({ error: 'Error al actualizar metadata' });
   }
+};
+
+export const getYoutubeAnalytics = (req: Request, res: Response) => {
+  // En un sistema real, esto llamaría a la API de YouTube
+  res.json({
+    views: 1250000,
+    revenue: 4500.25,
+    topRegions: ['US', 'MX', 'CO', 'ES'],
+    monetizationStatus: 'Active'
+  });
 };

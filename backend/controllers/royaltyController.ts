@@ -66,7 +66,7 @@ export const uploadRoyalties = [
           if (tracks.length > 0) trackId = tracks[0].id;
         }
 
-        RoyaltyModel.createRoyalty({
+        const info = RoyaltyModel.createRoyalty({
           artist_id: artistId,
           fecha: row.fecha,
           plataforma: row.plataforma,
@@ -79,7 +79,7 @@ export const uploadRoyalties = [
 
         // Trigger withholding if track has splits
         if (trackId) {
-          processSplitsForRoyalty(trackId, parseFloat(row.cantidad));
+          processSplitsForRoyalty(trackId, parseFloat(row.cantidad), info.lastInsertRowid as number);
         }
       }
 
@@ -112,7 +112,7 @@ export const processRoyalty = async (req: AuthRequest, res: Response) => {
     const track = db.prepare('SELECT artist_id FROM tracks WHERE id = ?').get(track_id) as any;
     if (!track) return res.status(404).json({ error: 'Track not found' });
 
-    RoyaltyModel.createRoyalty({
+    const info = RoyaltyModel.createRoyalty({
       artist_id: track.artist_id,
       fecha,
       plataforma,
@@ -123,59 +123,117 @@ export const processRoyalty = async (req: AuthRequest, res: Response) => {
       concepto: 'Procesado manualmente'
     });
 
-    processSplitsForRoyalty(track_id, cantidad);
+    processSplitsForRoyalty(track_id, cantidad, info.lastInsertRowid as number);
     res.json({ message: 'Royalty processed' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 };
 
-const processSplitsForRoyalty = (trackId: number, amount: number) => {
+const processSplitsForRoyalty = (trackId: number, amount: number, royaltyId: number) => {
   const splits = db.prepare('SELECT * FROM splits WHERE track_id = ? AND status = "accepted"').all(trackId) as any[];
+  
+  // Get track owner
+  const track = db.prepare('SELECT artist_id FROM tracks WHERE id = ?').get(trackId) as any;
+  const owner = db.prepare('SELECT user_id FROM artists WHERE id = ?').get(track.artist_id) as any;
+  
+  let totalSplitPercentage = 0;
+  
   for (const split of splits) {
-    const withholdAmount = (amount * split.percentage) / 100;
+    totalSplitPercentage += split.percentage;
+    const shareAmount = (amount * split.percentage) / 100;
+    
+    // Find user by email
+    const user = db.prepare('SELECT id FROM users WHERE email = ?').get(split.email) as any;
+    
+    if (user) {
+      // Record distribution
+      db.prepare(`
+        INSERT INTO royalty_distributions (royalty_id, user_id, split_id, amount, status)
+        VALUES (?, ?, ?, ?, 'paid')
+      `).run(royaltyId, user.id, split.id, shareAmount);
+      
+      // Update balance
+      db.prepare(`
+        INSERT INTO user_balances (user_id, balance) 
+        VALUES (?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET balance = balance + ?, updated_at = CURRENT_TIMESTAMP
+      `).run(user.id, shareAmount, shareAmount);
+    } else {
+      // User not found, withhold funds
+      db.prepare(`
+        INSERT INTO royalty_distributions (royalty_id, user_id, split_id, amount, status)
+        VALUES (?, ?, ?, ?, 'withheld')
+      `).run(royaltyId, 0, split.id, shareAmount); // 0 for unknown user
+      
+      db.prepare(`
+        INSERT INTO royalty_withholdings (track_id, split_id, cantidad, estado)
+        VALUES (?, ?, ?, 'withheld')
+      `).run(trackId, split.id, shareAmount, 'withheld');
+    }
+  }
+  
+  // Remaining goes to owner
+  const ownerPercentage = 100 - totalSplitPercentage;
+  if (ownerPercentage > 0) {
+    const ownerAmount = (amount * ownerPercentage) / 100;
+    
     db.prepare(`
-      INSERT INTO royalty_withholdings (track_id, split_id, cantidad)
-      VALUES (?, ?, ?)
-    `).run(trackId, split.id, withholdAmount);
+      INSERT INTO royalty_distributions (royalty_id, user_id, amount, status)
+      VALUES (?, ?, ?, 'paid')
+    `).run(royaltyId, owner.user_id, ownerAmount);
+    
+    db.prepare(`
+      INSERT INTO user_balances (user_id, balance) 
+      VALUES (?, ?)
+      ON CONFLICT(user_id) DO UPDATE SET balance = balance + ?, updated_at = CURRENT_TIMESTAMP
+    `).run(owner.user_id, ownerAmount, ownerAmount);
   }
 };
 
-export const getWithholdingsByTrack = (req: AuthRequest, res: Response) => {
-  const { trackId } = req.params;
-  try {
-    const withholdings = db.prepare('SELECT * FROM royalty_withholdings WHERE track_id = ?').all(trackId);
-    res.json(withholdings);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const getMyWithholdings = (req: AuthRequest, res: Response) => {
+export const getMyDistributions = (req: AuthRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ error: 'No autorizado' });
   try {
-    const artists = ArtistModel.getArtistsByUser(req.user.id);
-    if (artists.length === 0) return res.json([]);
-    const artistId = artists[0].id;
-
-    const withholdings = db.prepare(`
-      SELECT rw.*, t.title as track_title, s.artist_name as collaborator_name
-      FROM royalty_withholdings rw
-      JOIN tracks t ON rw.track_id = t.id
-      LEFT JOIN splits s ON rw.split_id = s.id
-      WHERE t.artist_id = ?
-    `).all(artistId);
-    res.json(withholdings);
+    const distributions = db.prepare(`
+      SELECT rd.*, r.fecha, r.plataforma, t.title as track_title
+      FROM royalty_distributions rd
+      JOIN royalties r ON rd.royalty_id = r.id
+      LEFT JOIN tracks t ON r.track_id = t.id
+      WHERE rd.user_id = ?
+      ORDER BY r.fecha DESC
+    `).all(req.user.id);
+    res.json(distributions);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 };
 
-export const releaseWithholding = (req: AuthRequest, res: Response) => {
-  const { withholdingId } = req.params;
+export const getMyBalance = (req: AuthRequest, res: Response) => {
+  if (!req.user) return res.status(401).json({ error: 'No autorizado' });
   try {
-    db.prepare('UPDATE royalty_withholdings SET estado = "released", released_at = CURRENT_TIMESTAMP WHERE id = ?').run(withholdingId);
-    res.json({ message: 'Withholding released' });
+    const balance = db.prepare('SELECT * FROM user_balances WHERE user_id = ?').get(req.user.id);
+    res.json(balance || { balance: 0, withheld: 0 });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const requestPayout = async (req: AuthRequest, res: Response) => {
+  if (!req.user) return res.status(401).json({ error: 'No autorizado' });
+  const { amount, method } = req.body;
+  
+  try {
+    const balance = db.prepare('SELECT balance FROM user_balances WHERE user_id = ?').get(req.user.id) as any;
+    if (!balance || balance.balance < amount) {
+      return res.status(400).json({ error: 'Saldo insuficiente' });
+    }
+    
+    db.transaction(() => {
+      db.prepare('UPDATE user_balances SET balance = balance - ? WHERE user_id = ?').run(amount, req.user!.id);
+      db.prepare('INSERT INTO payouts (user_id, amount, method) VALUES (?, ?, ?)').run(req.user!.id, amount, method);
+    })();
+    
+    res.json({ message: 'Payout requested successfully' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

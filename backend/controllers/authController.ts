@@ -4,8 +4,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { body, validationResult } from 'express-validator';
 import { createUser, findUserByEmail } from '../models/User';
+import { config } from '../config/config';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
+const JWT_SECRET = config.jwtSecret;
 
 export const register = [
   body('email').isEmail().normalizeEmail(),
@@ -38,15 +39,22 @@ export const login = [
     if (!password) return res.status(400).json({ error: 'Password is required' });
 
     const user = findUserByEmail(email);
-    if (!user || !user.password) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!user || !user.password) {
+      console.warn(`Login failed: User not found or no password for ${email}`);
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
 
     try {
       const valid = await bcrypt.compare(password, user.password);
-      if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+      if (!valid) {
+        console.warn(`Login failed: Incorrect password for ${email}`);
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
     } catch (error) {
       console.error('Bcrypt compare error:', error);
       // Fallback for non-hashed passwords if any exist (not recommended for production but helps during migration)
       if (password !== user.password) {
+        console.warn(`Login failed: Fallback password check failed for ${email}`);
         return res.status(401).json({ error: 'Invalid credentials' });
       }
     }

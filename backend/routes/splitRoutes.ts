@@ -10,9 +10,12 @@ router.get('/reject/:token', splitController.rejectSplit);
 
 // Protected routes
 router.use(authenticate);
+router.get('/user', splitController.getUserSplits);
 router.post('/tracks/:trackId/splits', splitController.createSplit);
 router.get('/tracks/:trackId/splits', splitController.getTrackSplits);
 router.get('/tracks/:trackId/splits/pending', splitController.getPendingSplits);
+router.put('/:splitId', splitController.updateSplit);
+router.post('/:splitId/resend', splitController.resendInvitation);
 router.delete('/:splitId', splitController.deleteSplit);
 
 export default router;

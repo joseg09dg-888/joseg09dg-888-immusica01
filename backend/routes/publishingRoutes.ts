@@ -1,13 +1,11 @@
 import { Router } from 'express';
+import * as publishingController from '../controllers/publishingController';
 import { authenticate } from '../middleware/auth';
-import * as PublishingController from '../controllers/publishingController';
 
 const router = Router();
 
-router.get('/compositions', authenticate, PublishingController.getCompositions);
-router.post('/compositions', authenticate, PublishingController.createComposition);
-router.get('/royalties', authenticate, PublishingController.getPublishingRoyalties);
-router.post('/register', authenticate, PublishingController.registerComposition);
-router.get('/summary', authenticate, PublishingController.getPublishingSummary);
+router.post('/register', authenticate, publishingController.registerComposition);
+router.post('/blockchain-verify', authenticate, publishingController.verifyBlockchain);
+router.get('/summary', authenticate, publishingController.getPublishingSummary);
 
 export default router;

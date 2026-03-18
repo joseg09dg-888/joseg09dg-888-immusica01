@@ -11,6 +11,7 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('im_music_token');
   if (token) {
+    config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -28,7 +29,7 @@ api.interceptors.response.use(
     if (status === 401) {
       // Token expirado o inválido
       localStorage.removeItem('im_music_token');
-      if (!window.location.pathname.includes('/login') && window.location.pathname !== '/') {
+      if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }
     } else if (status === 403) {

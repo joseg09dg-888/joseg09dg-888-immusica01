@@ -39,6 +39,8 @@ import videoRoutes from './routes/videoRoutes';
 import lyricsRoutes from './routes/lyricsRoutes';
 import playlistRoutes from './routes/playlistRoutes';
 import feedbackRoutes from './routes/feedbackRoutes';
+import openclawRoutes from './routes/openclawRoutes';
+import gamificationRoutes from './routes/gamificationRoutes';
 import { upload } from './middleware/upload';
 import { authenticate } from './middleware/auth';
 import db from './config/database';
@@ -113,6 +115,8 @@ async function startServer() {
   app.use('/api/lyrics', lyricsRoutes);
   app.use('/api/playlists', playlistRoutes);
   app.use('/api/feedback', feedbackRoutes);
+  app.use('/api/openclaw', openclawRoutes);
+  app.use('/api/gamification', gamificationRoutes);
 
   // Socket.io Community Chat
   io.on('connection', (socket) => {

@@ -1,12 +1,11 @@
-import express from 'express';
+import { Router } from 'express';
+import * as youtubeController from '../controllers/youtubeController';
 import { authenticate } from '../middleware/auth';
-import { registerContentId, getContentIds } from '../controllers/youtubeController';
 
-const router = express.Router();
+const router = Router();
 
-router.use(authenticate);
-
-router.post('/register', registerContentId);
-router.get('/registrations', getContentIds);
+router.post('/artist-request', authenticate, youtubeController.requestArtistChannel);
+router.post('/content-id/seo', authenticate, youtubeController.updateContentIdMetadata);
+router.get('/analytics', authenticate, youtubeController.getYoutubeAnalytics);
 
 export default router;

@@ -113,6 +113,26 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
   CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+
+  CREATE TABLE IF NOT EXISTS inbox_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source TEXT NOT NULL,
+    sender TEXT NOT NULL,
+    subject TEXT,
+    message TEXT NOT NULL,
+    priority INTEGER DEFAULT 1,
+    status TEXT DEFAULT 'unread',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE INDEX IF NOT EXISTS idx_inbox_status ON inbox_messages(status);
+
+  CREATE TABLE IF NOT EXISTS ia_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    action TEXT NOT NULL,
+    details TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE INDEX IF NOT EXISTS idx_ia_logs_action ON ia_logs(action);
   CREATE INDEX IF NOT EXISTS idx_daily_stats_track_id ON daily_stats(track_id);
   CREATE INDEX IF NOT EXISTS idx_daily_stats_fecha ON daily_stats(fecha);
 
@@ -433,6 +453,129 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(job_id) REFERENCES upload_jobs(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS youtube_artist_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    artist_id INTEGER NOT NULL,
+    channel_url TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(artist_id) REFERENCES artists(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_yt_artist_req_artist_id ON youtube_artist_requests(artist_id);
+
+  CREATE TABLE IF NOT EXISTS user_gamification (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL UNIQUE,
+    xp INTEGER DEFAULT 0,
+    level INTEGER DEFAULT 1,
+    badges TEXT, -- JSON array
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_gamification_user_id ON user_gamification(user_id);
+
+  CREATE TABLE IF NOT EXISTS achievements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    xp_reward INTEGER DEFAULT 0,
+    icon TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS user_achievements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    achievement_id INTEGER NOT NULL,
+    achieved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY(achievement_id) REFERENCES achievements(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_user_ach_user_id ON user_achievements(user_id);
+
+  CREATE TABLE IF NOT EXISTS blockchain_verifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_type TEXT NOT NULL, -- track, composition
+    entity_id INTEGER NOT NULL,
+    tx_hash TEXT NOT NULL,
+    network TEXT DEFAULT 'Polygon',
+    certificate_url TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE INDEX IF NOT EXISTS idx_blockchain_entity ON blockchain_verifications(entity_type, entity_id);
+
+  CREATE TABLE IF NOT EXISTS user_balances (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL UNIQUE,
+    balance REAL DEFAULT 0,
+    withheld REAL DEFAULT 0,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_balances_user_id ON user_balances(user_id);
+
+  CREATE TABLE IF NOT EXISTS royalty_distributions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    royalty_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    split_id INTEGER,
+    amount REAL NOT NULL,
+    status TEXT DEFAULT 'pending', -- pending, paid, withheld
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(royalty_id) REFERENCES royalties(id) ON DELETE CASCADE,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY(split_id) REFERENCES splits(id) ON DELETE SET NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_distributions_user_id ON royalty_distributions(user_id);
+  CREATE INDEX IF NOT EXISTS idx_distributions_royalty_id ON royalty_distributions(royalty_id);
+
+  CREATE TABLE IF NOT EXISTS payouts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    amount REAL NOT NULL,
+    method TEXT, -- paypal, bank, crypto
+    status TEXT DEFAULT 'pending',
+    processed_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_payouts_user_id ON payouts(user_id);
+
+  -- Additional Indices for Enterprise Base
+  CREATE INDEX IF NOT EXISTS idx_tracks_isrc ON tracks(isrc);
+  CREATE INDEX IF NOT EXISTS idx_tracks_upc ON tracks(upc);
+  CREATE INDEX IF NOT EXISTS idx_royalties_fecha ON royalties(fecha);
+  CREATE INDEX IF NOT EXISTS idx_royalties_plataforma ON royalties(plataforma);
+  CREATE INDEX IF NOT EXISTS idx_royalties_estado ON royalties(estado);
+  CREATE INDEX IF NOT EXISTS idx_daily_stats_fecha_plat ON daily_stats(fecha, plataforma);
+  CREATE INDEX IF NOT EXISTS idx_splits_status ON splits(status);
+  CREATE INDEX IF NOT EXISTS idx_compositions_iswc ON compositions(iswc);
+  CREATE INDEX IF NOT EXISTS idx_marketplace_beats_genre ON marketplace_beats(genre);
+  CREATE INDEX IF NOT EXISTS idx_marketplace_beats_status ON marketplace_beats(status);
+  CREATE INDEX IF NOT EXISTS idx_videos_status ON videos(status);
+  CREATE INDEX IF NOT EXISTS idx_campaigns_status ON campaigns(status);
+
+  -- Views for optimized queries
+  DROP VIEW IF EXISTS view_royalty_summary;
+  CREATE VIEW view_royalty_summary AS
+  SELECT 
+    artist_id, 
+    SUM(cantidad) as total_cantidad, 
+    plataforma, 
+    strftime('%Y-%m', fecha) as mes
+  FROM royalties
+  GROUP BY artist_id, plataforma, mes;
+
+  DROP VIEW IF EXISTS view_publishing_summary;
+  CREATE VIEW view_publishing_summary AS
+  SELECT 
+    c.artist_id, 
+    c.title, 
+    c.iswc, 
+    SUM(pr.amount) as total_amount
+  FROM compositions c
+  LEFT JOIN publishing_royalties pr ON c.id = pr.composition_id
+  GROUP BY c.id;
 `);
 
 // Seed default users if not exists
@@ -441,7 +584,7 @@ import bcrypt from 'bcryptjs';
 const seedUsers = [
   { email: 'admin@immusica.com', password: 'admin123', name: 'Admin User', role: 'admin' },
   { email: 'joseg09.dg@gmail.com', password: 'admin123', name: 'Jose Admin', role: 'admin' },
-  { email: 'artist@immusic.com', password: 'password123', name: 'Elite Artist', role: 'artist' }
+  { email: 'artist@immusica.com', password: 'password123', name: 'Elite Artist', role: 'artist' }
 ];
 
 for (const u of seedUsers) {
@@ -470,5 +613,12 @@ for (const u of seedUsers) {
     }
   }
 }
+
+// Marketplace enhancements
+try { db.exec("ALTER TABLE marketplace_beats ADD COLUMN sales_count INTEGER DEFAULT 0;"); } catch(e) {}
+try { db.exec("ALTER TABLE marketplace_beats ADD COLUMN rating_avg REAL DEFAULT 0;"); } catch(e) {}
+
+// YouTube SEO
+try { db.exec("ALTER TABLE youtube_content_id ADD COLUMN seo_metadata TEXT;"); } catch(e) {}
 
 export default db;
