@@ -15,7 +15,7 @@ const AdminDashboard: React.FC = () => {
         <Route path="inbox" element={<AdminInbox />} />
         <Route path="logs" element={<AdminLogs />} />
         <Route path="tasks" element={<AdminTasks />} />
-        <Route path="infra" element={<AdminInfrastructure />} />
+        <Route path="infrastructure" element={<AdminInfrastructure />} />
         <Route path="config" element={<AdminConfig />} />
         <Route path="*" element={<Navigate to="inbox" replace />} />
       </Route>
