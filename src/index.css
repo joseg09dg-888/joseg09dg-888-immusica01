@@ -48,11 +48,11 @@
   }
 
   .btn-primary {
-    @apply relative overflow-hidden px-8 py-4 bg-electric-purple text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(125,60,255,0.4)] active:scale-95;
+    @apply relative overflow-hidden px-6 py-3 sm:px-8 sm:py-4 bg-electric-purple text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(125,60,255,0.4)] active:scale-95;
   }
 
   .btn-secondary {
-    @apply px-8 py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all hover:bg-white/10 active:scale-95;
+    @apply px-6 py-3 sm:px-8 sm:py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all hover:bg-white/10 active:scale-95;
   }
 
   .nav-link {

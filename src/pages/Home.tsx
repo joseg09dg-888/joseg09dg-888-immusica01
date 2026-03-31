@@ -82,7 +82,7 @@ const Home: React.FC = () => {
             <div className="relative perspective-1000">
               <motion.h1 
                 style={{ rotateX: 10 }}
-                className="text-[12vw] sm:text-[10vw] lg:text-[12vw] font-display font-black tracking-tighter leading-[0.9] sm:leading-[0.85] uppercase italic mix-blend-difference"
+                className="text-[14vw] sm:text-[10vw] lg:text-[12vw] font-display font-black tracking-tighter leading-[0.9] sm:leading-[0.85] uppercase italic mix-blend-difference"
               >
                 {t('home.hero_title')} <br />
                 <span className="text-electric-purple outline-text-thick animate-glitch">{t('home.hero_subtitle')}</span>
@@ -119,11 +119,11 @@ const Home: React.FC = () => {
                 </div>
               </div>
               
-              <div className="flex flex-col sm:flex-row items-center gap-8">
+              <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
                 {isAuthenticated && (user?.role === 'ai_operator' || user?.role === 'admin' || user?.email?.toLowerCase() === 'joseg09.dg@gmail.com') && (
                   <Link 
                     to="/admin" 
-                    className="group relative px-12 py-6 bg-electric-purple text-white rounded-full font-black uppercase tracking-[0.2em] text-xs overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-electric-purple/20"
+                    className="group relative px-8 py-4 sm:px-12 sm:py-6 bg-electric-purple text-white rounded-full font-black uppercase tracking-[0.2em] text-[10px] sm:text-xs overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-electric-purple/20"
                   >
                     <span className="relative z-10 flex items-center gap-2">
                       <ShieldCheck size={16} />
@@ -135,7 +135,7 @@ const Home: React.FC = () => {
                 {!isAuthenticated && (
                   <Link 
                     to="/login" 
-                    className="group relative px-12 py-6 bg-white/5 text-white rounded-full font-black uppercase tracking-[0.2em] text-xs overflow-hidden transition-all hover:scale-105 active:scale-95 border border-white/10"
+                    className="group relative px-8 py-4 sm:px-12 sm:py-6 bg-white/5 text-white rounded-full font-black uppercase tracking-[0.2em] text-[10px] sm:text-xs overflow-hidden transition-all hover:scale-105 active:scale-95 border border-white/10"
                   >
                     <span className="relative z-10 flex items-center gap-2">
                       <ShieldCheck size={16} />
@@ -144,13 +144,13 @@ const Home: React.FC = () => {
                     <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
                   </Link>
                 )}
-                <Link to="/plans" className="group relative px-12 py-6 bg-white text-ink rounded-full font-black uppercase tracking-[0.2em] text-xs overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-white/10">
+                <Link to="/plans" className="group relative px-8 py-4 sm:px-12 sm:py-6 bg-white text-ink rounded-full font-black uppercase tracking-[0.2em] text-[10px] sm:text-xs overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-2xl shadow-white/10">
                   <span className="relative z-10">{t('home.get_started')}</span>
                   <div className="absolute inset-0 bg-cyber-cyan translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
                 </Link>
                 <Link to="/stats" className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest hover:text-cyber-cyan transition-all group">
-                  <div className="w-16 h-16 rounded-full border border-white/10 flex items-center justify-center group-hover:border-cyber-cyan group-hover:bg-cyber-cyan/5 transition-all duration-500">
-                    <Play size={20} fill="currentColor" className="group-hover:scale-110 transition-transform" />
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border border-white/10 flex items-center justify-center group-hover:border-cyber-cyan group-hover:bg-cyber-cyan/5 transition-all duration-500">
+                    <Play size={16} fill="currentColor" className="group-hover:scale-110 transition-transform" />
                   </div>
                   Watch Manifesto
                 </Link>
@@ -308,8 +308,8 @@ const Home: React.FC = () => {
             Join thousands of artists who have taken control of their masters and their future.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-            <Link to="/plans" className="btn-primary px-12 py-6 text-sm">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+            <Link to="/plans" className="btn-primary w-full sm:w-auto px-8 py-4 sm:px-12 sm:py-6 text-[10px] sm:text-sm">
               Start Free Trial
             </Link>
             <Link to="/legal" className="text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors">

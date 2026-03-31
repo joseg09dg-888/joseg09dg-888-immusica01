@@ -1,10 +1,21 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+let aiInstance: GoogleGenAI | null = null;
+
+const getAi = () => {
+  if (!aiInstance) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error('GEMINI_API_KEY is not defined');
+    }
+    aiInstance = new GoogleGenAI({ apiKey });
+  }
+  return aiInstance;
+};
 
 export const geminiService = {
   async generateMarketResearch(artistName: string, genre: string) {
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Generate a detailed music market research report for an artist named "${artistName}" in the "${genre}" genre. 
       Include:
@@ -34,7 +45,7 @@ export const geminiService = {
   },
 
   async extractMetadata(trackTitle: string) {
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Based on the track title "${trackTitle}", suggest optimized metadata:
       - Genre
@@ -61,7 +72,7 @@ export const geminiService = {
   },
 
   async reviewContract(contractText: string) {
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Analyze the following music industry contract text and provide a legal risk assessment.
       Contract Text: "${contractText}"
@@ -91,7 +102,7 @@ export const geminiService = {
   },
 
   async migrateCatalog(fileBase64: string, mimeType: string) {
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: "gemini-3.1-pro-preview",
       contents: [
         {

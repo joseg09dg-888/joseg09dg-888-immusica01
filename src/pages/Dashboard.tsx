@@ -137,7 +137,7 @@ const Dashboard: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-4xl sm:text-6xl lg:text-9xl font-display font-black tracking-tighter uppercase leading-none italic"
+              className="text-4xl sm:text-6xl lg:text-8xl font-display font-black tracking-tighter uppercase leading-none italic"
             >
               {t('dashboard.welcome')} <br />
               <span className="text-white outline-text animate-glitch">{user?.name || 'Artist'}</span>
@@ -148,14 +148,14 @@ const Dashboard: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="flex items-center gap-8 p-8 bg-white/[0.02] rounded-[40px] border border-white/5 backdrop-blur-xl group"
+            className="flex items-center gap-4 sm:gap-8 p-6 sm:p-8 bg-white/[0.02] rounded-3xl sm:rounded-[40px] border border-white/5 backdrop-blur-xl group"
           >
             <div className="text-right space-y-1">
               <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] text-white/20">{t('dashboard.current_tier')}</p>
-              <p className="text-base sm:text-xl font-display font-black text-electric-purple italic uppercase tracking-tight">IM MUSIC Neural Pro</p>
+              <p className="text-sm sm:text-xl font-display font-black text-electric-purple italic uppercase tracking-tight">IM MUSIC Neural Pro</p>
             </div>
-            <Link to="/plans" className="w-16 h-16 rounded-[24px] bg-electric-purple text-white flex items-center justify-center hover:scale-110 transition-all shadow-xl shadow-electric-purple/20 group">
-              <Zap size={24} className="group-hover:fill-current" />
+            <Link to="/plans" className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl sm:rounded-[24px] bg-electric-purple text-white flex items-center justify-center hover:scale-110 transition-all shadow-xl shadow-electric-purple/20 group">
+              <Zap size={20} className="sm:size-[24px] group-hover:fill-current" />
             </Link>
           </motion.div>
         </div>

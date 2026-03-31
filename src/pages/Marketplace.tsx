@@ -54,7 +54,7 @@ const Marketplace: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-6xl lg:text-9xl font-display font-black tracking-tighter uppercase leading-[0.85] italic"
+              className="text-5xl sm:text-7xl lg:text-9xl font-display font-black tracking-tighter uppercase leading-[0.85] italic"
             >
               Elite <br />
               <span className="text-cyber-cyan">Marketplace</span>
@@ -69,16 +69,16 @@ const Marketplace: React.FC = () => {
             </motion.p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="relative group">
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+            <div className="relative group w-full sm:w-auto">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-cyber-cyan transition-colors" size={18} />
               <input 
                 type="text" 
                 placeholder="Search assets..." 
-                className="bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm font-medium focus:outline-none focus:border-cyber-cyan/40 focus:bg-white/10 transition-all w-64 md:w-80"
+                className="bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm font-medium focus:outline-none focus:border-cyber-cyan/40 focus:bg-white/10 transition-all w-full sm:w-64 md:w-80"
               />
             </div>
-            <button className="w-14 h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-white/40 hover:bg-white/10 hover:text-white transition-all">
+            <button className="w-full sm:w-14 h-14 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-white/40 hover:bg-white/10 hover:text-white transition-all">
               <Filter size={20} />
             </button>
           </div>
@@ -132,18 +132,18 @@ const Marketplace: React.FC = () => {
               <div className="p-10 space-y-6 relative z-10">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-white/20">{item.genero}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-white/20">{item.genre}</span>
                     <div className="w-1 h-1 rounded-full bg-white/10" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-white/20">{item.bpm} BPM</span>
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-cyber-cyan font-display font-black text-2xl tracking-tighter">${item.precio / 100}</span>
+                    <span className="text-cyber-cyan font-display font-black text-2xl tracking-tighter">${item.price / 100}</span>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="text-2xl font-display font-black uppercase tracking-tight italic group-hover:text-cyber-cyan transition-colors">{item.titulo}</h3>
-                  <p className="text-white/40 text-xs font-medium">Produced by <span className="text-white/60">{item.productor}</span></p>
+                  <h3 className="text-2xl font-display font-black uppercase tracking-tight italic group-hover:text-cyber-cyan transition-colors">{item.title}</h3>
+                  <p className="text-white/40 text-xs font-medium">Produced by <span className="text-white/60">{item.producer}</span></p>
                 </div>
 
                 <button 

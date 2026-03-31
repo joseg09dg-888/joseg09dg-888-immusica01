@@ -2,10 +2,10 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import * as ArtistModel from '../models/Artist';
 import * as TrackModel from '../models/Track';
-import { GoogleGenAI } from '@google/genai';
+import { getGemini } from '../utils/gemini';
 import fs from 'fs';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+const getAi = () => getGemini();
 
 export const bulkUpload = async (req: AuthRequest, res: Response) => {
   try {
@@ -31,7 +31,7 @@ export const bulkUpload = async (req: AuthRequest, res: Response) => {
           Return a JSON array of tracks with "title", "isrc", "upc", "release_date".
         `;
 
-        const response = await ai.models.generateContent({
+        const response = await getAi().models.generateContent({
           model: "gemini-3-flash-preview",
           contents: [
             { inlineData: { data: base64, mimeType: mimeType } },

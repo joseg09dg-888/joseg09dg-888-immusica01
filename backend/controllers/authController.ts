@@ -36,6 +36,7 @@ export const login = [
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     const { email, password } = req.body;
+    console.log(`Login attempt for: ${email}`);
     if (!password) return res.status(400).json({ error: 'Password is required' });
 
     const user = findUserByEmail(email);

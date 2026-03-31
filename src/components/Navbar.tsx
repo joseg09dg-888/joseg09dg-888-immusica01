@@ -456,14 +456,14 @@ const Navbar: React.FC = () => {
                               key={item.path}
                               to={item.path}
                               onClick={() => setIsOpen(false)}
-                              className={`p-6 rounded-2xl flex items-center gap-6 transition-all ${
+                              className={`p-4 rounded-xl flex items-center gap-4 transition-all ${
                                 isActive(item.path)
                                   ? 'bg-electric-purple text-white'
                                   : 'bg-white/5 text-white/60'
                               }`}
                             >
-                              <item.icon size={24} />
-                              <span className="text-xl font-display font-black uppercase tracking-tight">{item.label}</span>
+                              <item.icon size={20} />
+                              <span className="text-lg font-display font-black uppercase tracking-tight">{item.label}</span>
                             </Link>
                           );
                         })}
@@ -475,14 +475,14 @@ const Navbar: React.FC = () => {
                                 key={item.path}
                                 to={item.path}
                                 onClick={() => setIsOpen(false)}
-                                className={`p-6 rounded-2xl flex items-center gap-6 transition-all ${
+                                className={`p-4 rounded-xl flex items-center gap-4 transition-all ${
                                   isActive(item.path)
                                     ? 'bg-cyber-cyan text-ink'
                                     : 'bg-white/5 text-white/60'
                                 }`}
                               >
-                                <item.icon size={24} />
-                                <span className="text-xl font-display font-black uppercase tracking-tight">{item.label}</span>
+                                <item.icon size={20} />
+                                <span className="text-lg font-display font-black uppercase tracking-tight">{item.label}</span>
                               </Link>
                             ))}
                           </div>
@@ -497,14 +497,14 @@ const Navbar: React.FC = () => {
                   <Link
                     to="/plans"
                     onClick={() => setIsOpen(false)}
-                    className={`p-6 rounded-2xl flex items-center gap-6 transition-all ${
+                    className={`p-4 rounded-xl flex items-center gap-4 transition-all ${
                       isActive('/plans')
                         ? 'bg-cyber-cyan text-ink'
                         : 'bg-white/5 text-white/60'
                     }`}
                   >
-                    <Zap size={24} />
-                    <span className="text-xl font-display font-black uppercase tracking-tight">{t('nav.plans')}</span>
+                    <Zap size={20} />
+                    <span className="text-lg font-display font-black uppercase tracking-tight">{t('nav.plans')}</span>
                   </Link>
                 </div>
               </div>

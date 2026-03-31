@@ -8,7 +8,7 @@ import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../contexts/AuthContext';
 import { getChatHistory, reportMessage } from '../services/api';
 import { toast } from 'sonner';
-import { API_URL } from '../config/api';
+import { API_BASE_URL } from '../config/api';
 
 const CommunityChat: React.FC = () => {
   const { user } = useAuth();
@@ -36,7 +36,7 @@ const CommunityChat: React.FC = () => {
       });
 
     // Initialize socket
-    const s = io(API_URL, {
+    const s = io(API_BASE_URL, {
       auth: { token: localStorage.getItem('im_music_token') }
     });
 

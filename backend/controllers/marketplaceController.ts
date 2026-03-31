@@ -5,7 +5,12 @@ import { cache } from '../utils/cache';
 export const getBeats = (req: Request, res: Response) => {
   const { genre, minPrice, maxPrice, sortBy } = req.query;
   
-  let query = "SELECT * FROM marketplace_beats WHERE status = 'available'";
+  let query = `
+    SELECT b.*, a.name as producer 
+    FROM marketplace_beats b
+    JOIN artists a ON b.artist_id = a.id
+    WHERE b.status = 'available'
+  `;
   const params: any[] = [];
   
   if (genre) {

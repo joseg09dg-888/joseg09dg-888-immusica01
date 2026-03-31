@@ -126,7 +126,7 @@ const PlansList: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-6 relative z-10">
           <button 
             onClick={() => window.open('https://wa.me/573001234567?text=Hola,%20quiero%20información%20sobre%20el%20plan%20Enterprise.', '_blank')}
-            className="px-12 py-6 bg-cyber-cyan text-ink rounded-2xl font-black uppercase tracking-[0.4em] text-[10px] hover:scale-105 transition-all shadow-2xl shadow-cyber-cyan/20 flex items-center gap-4 group/btn"
+            className="w-full sm:w-auto px-8 py-4 sm:px-12 sm:py-6 bg-cyber-cyan text-ink rounded-2xl font-black uppercase tracking-[0.2em] sm:tracking-[0.4em] text-[10px] hover:scale-105 transition-all shadow-2xl shadow-cyber-cyan/20 flex items-center justify-center gap-4 group/btn"
           >
             <MessageCircle size={18} />
             <span>{t('contact_whatsapp')}</span>

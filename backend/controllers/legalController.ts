@@ -1,8 +1,8 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
-import { GoogleGenAI } from '@google/genai';
+import { getGemini } from '../utils/gemini';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+const getAi = () => getGemini();
 
 export const consultarLegal = async (req: AuthRequest, res: Response) => {
   try {
@@ -23,7 +23,7 @@ export const consultarLegal = async (req: AuthRequest, res: Response) => {
       Descargo de responsabilidad: Aclara que esto es información educativa y no asesoría legal formal.
     `;
 
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
     });

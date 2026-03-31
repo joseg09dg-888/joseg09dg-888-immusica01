@@ -2,12 +2,9 @@ import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import * as ArtistModel from '../models/Artist';
 import * as BrandingModel from '../models/Branding';
-import { GoogleGenAI } from '@google/genai';
-import dotenv from 'dotenv';
+import { getGemini } from '../utils/gemini';
 
-dotenv.config();
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+const getAi = () => getGemini();
 
 const preguntasArquetipo = [
   "1. ¿Cuál es tu motivación principal para crear música?",
@@ -60,7 +57,7 @@ export const procesarTest = async (req: AuthRequest, res: Response) => {
       }
     `;
 
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: { responseMimeType: "application/json" }
@@ -122,7 +119,7 @@ export const generarBrandingSensorial = async (req: AuthRequest, res: Response) 
       }
     `;
 
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: { responseMimeType: "application/json" }
@@ -184,7 +181,7 @@ export const generarMercadoObjetivo = async (req: AuthRequest, res: Response) =>
       }
     `;
 
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: { responseMimeType: "application/json" }
@@ -273,7 +270,7 @@ export const generarPlanContenidos = async (req: AuthRequest, res: Response) => 
       }
     `;
 
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: { responseMimeType: "application/json" }
@@ -345,7 +342,7 @@ export const generarContenidoPromocional = async (req: AuthRequest, res: Respons
       }
     `;
 
-    const response = await ai.models.generateContent({
+    const response = await getAi().models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: { responseMimeType: "application/json" }

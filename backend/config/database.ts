@@ -16,7 +16,7 @@ db.exec(`
   -- Existing tables...
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE NOT NULL COLLATE NOCASE,
     password TEXT NOT NULL,
     name TEXT NOT NULL,
     role TEXT DEFAULT 'artist',
@@ -584,13 +584,14 @@ import bcrypt from 'bcryptjs';
 
 const seedUsers = [
   { email: 'admin@immusica.com', password: 'admin123', name: 'Admin User', role: 'admin' },
-  { email: 'joseg09.dg@gmail.com', password: 'admin123', name: 'Jose Admin', role: 'admin' },
+  { email: 'joseg09.DG@gmail.com', password: 'admin123', name: 'Jose Admin', role: 'admin' },
   { email: 'artist@immusica.com', password: 'password123', name: 'Elite Artist', role: 'artist' }
 ];
 
 for (const u of seedUsers) {
   const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(u.email);
   if (!existing) {
+    console.log(`Seeding user: ${u.email}`);
     const hashedPw = bcrypt.hashSync(u.password, 10);
     const info = db.prepare('INSERT INTO users (email, password, name, role) VALUES (?, ?, ?, ?)').run(
       u.email,
@@ -603,6 +604,7 @@ for (const u of seedUsers) {
       const userId = info.lastInsertRowid;
       const existingArtist = db.prepare('SELECT id FROM artists WHERE user_id = ?').get(userId);
       if (!existingArtist) {
+        console.log(`Seeding artist for user: ${u.email}`);
         db.prepare('INSERT INTO artists (name, genre, bio, user_id, tier) VALUES (?, ?, ?, ?, ?)').run(
           'Neon Rebel',
           'Cyberpunk Pop',
@@ -612,12 +614,35 @@ for (const u of seedUsers) {
         );
       }
     }
+  } else {
+    console.log(`User already exists: ${u.email}`);
   }
 }
 
 // Marketplace enhancements
 try { db.exec("ALTER TABLE marketplace_beats ADD COLUMN sales_count INTEGER DEFAULT 0;"); } catch(e) {}
 try { db.exec("ALTER TABLE marketplace_beats ADD COLUMN rating_avg REAL DEFAULT 0;"); } catch(e) {}
+
+// Seed marketplace items if empty
+const existingBeats = db.prepare('SELECT COUNT(*) as count FROM marketplace_beats').get() as any;
+if (existingBeats.count === 0) {
+  const artist = db.prepare('SELECT id FROM artists LIMIT 1').get() as any;
+  if (artist) {
+    console.log('Seeding marketplace beats...');
+    const seedBeats = [
+      { artist_id: artist.id, title: 'Neon Pulse', genre: 'Cyberpunk', bpm: 128, price: 4999, audio_url: 'https://example.com/neon-pulse.mp3' },
+      { artist_id: artist.id, title: 'Midnight Drift', genre: 'Synthwave', bpm: 110, price: 3500, audio_url: 'https://example.com/midnight-drift.mp3' },
+      { artist_id: artist.id, title: 'Electric Dreams', genre: 'Retrowave', bpm: 120, price: 2999, audio_url: 'https://example.com/electric-dreams.mp3' },
+      { artist_id: artist.id, title: 'Glitch City', genre: 'Glitch Hop', bpm: 95, price: 5500, audio_url: 'https://example.com/glitch-city.mp3' },
+      { artist_id: artist.id, title: 'Neural Network', genre: 'Techno', bpm: 135, price: 4500, audio_url: 'https://example.com/neural-network.mp3' }
+    ];
+    
+    const insertBeat = db.prepare('INSERT INTO marketplace_beats (artist_id, title, genre, bpm, price, audio_url) VALUES (?, ?, ?, ?, ?, ?)');
+    for (const beat of seedBeats) {
+      insertBeat.run(beat.artist_id, beat.title, beat.genre, beat.bpm, beat.price, beat.audio_url);
+    }
+  }
+}
 
 // YouTube SEO
 try { db.exec("ALTER TABLE youtube_content_id ADD COLUMN seo_metadata TEXT;"); } catch(e) {}
